@@ -1703,152 +1703,50 @@ background 0.2s ease,
    JOB FOOTER
 
    ========================================================= */
-
 .job-footer {
-
-    min-height: 64px;
-
-    padding:
-
-        10px
-
-        10px
-
-        4px
-
-        12px;
-
+    padding: 12px;
     display: flex;
-
-    align-items: center;
-
-    justify-content: space-between;
-
-    gap: 10px;
-
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
 }
 
 .candidate-info {
-
     display: flex;
-
     align-items: center;
-
-    gap: 10px;
-
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 2px;
 }
 
 .candidate-info strong {
-
-    color:
-
-        rgba(255, 255, 255, 0.45);
-
+    color: rgba(255, 255, 255, 0.45);
     font-size: 9px;
-
     letter-spacing: 0.8px;
-
 }
 
 .candidate-count {
-
     width: 32px;
-
     height: 32px;
-
     display: flex;
-
     align-items: center;
-
     justify-content: center;
-
     border-radius: 50%;
-
     background:
-
         linear-gradient(
-
             135deg,
-
             rgba(169, 85, 255, 0.65),
-
             rgba(47, 85, 231, 0.60)
-
         );
-
     border:
-
         1px solid rgba(255, 255, 255, 0.16);
-
     color: white;
-
     font-size: 11px;
-
     font-weight: 600;
-
     box-shadow:
-
         0 8px 20px
-
         rgba(0, 0, 0, 0.25);
-
 }
-
-.job-footer button {
-
-    padding:
-
-        9px
-
-        14px;
-
-    border-radius: 14px;
-
-    background:
-
-        rgba(255, 255, 255, 0.075);
-
-    border:
-
-        1px solid rgba(255, 255, 255, 0.13);
-
-    color:
-
-        rgba(255, 255, 255, 0.72);
-
-    font-size: 10px;
-
-    font-weight: 600;
-
-    cursor: pointer;
-
-    backdrop-filter: blur(15px);
-
-    transition:
-
-background 0.2s ease,
-
-        color 0.2s ease,
-
-        transform 0.2s ease;
-
-}
-
-.job-footer button:hover {
-
-    background:
-
-        rgba(169, 85, 255, 0.22);
-
-    color: white;
-
-    transform:
-
-        translateY(-1px);
-
-}
-
-
 
 /* =========================================================
 
@@ -3827,56 +3725,38 @@ background 0.2s ease,
    JOB ACTIONS
 
    ========================================================= */
-
 .job-actions {
-
-    display: flex;
-
-    align-items: center;
-
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
-
+    width: 100%;
 }
 
 .job-actions button {
-
-    border: 1px solid rgba(255, 255, 255, 0.85);
-
-    padding: 9px 12px;
-
+    width: 100%;
+    min-height: 38px;
+    padding: 9px 8px;
     border-radius: 13px;
-
-    background: rgba(255, 255, 255, 0.65);
-
-    color: var(--midnight-purple);
-
+    background: rgba(255, 255, 255, 0.075);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    color: rgba(255, 255, 255, 0.72);
     font-size: 10px;
-
     font-weight: 600;
-
     cursor: pointer;
-
-    transition: 0.2s ease;
-
     backdrop-filter: blur(15px);
-
     -webkit-backdrop-filter: blur(15px);
-
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+    white-space: nowrap;
 }
 
 .job-actions button:hover {
-
-    background: var(--bright-lilac);
-
+    background: rgba(169, 85, 255, 0.22);
     color: white;
-
-    border-color: var(--bright-lilac);
-
     transform: translateY(-1px);
-
 }
-
-
 
 /* =========================================================
 

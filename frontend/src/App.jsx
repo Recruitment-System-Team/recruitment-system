@@ -6,6 +6,8 @@ import CandidateLogin from "./pages/CandidateLogin";
 import CandidateDashboard from "./pages/CandidateDashboard";
 import Home from "./pages/Home";
 import Register from "./pages/Register";
+import HiringManagerDashboard from "./pages/HiringManagerDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 
 import "./App.css";
 
@@ -65,26 +67,60 @@ function App() {
         );
 
         if (user?.role !== "HR Manager") {
-            navigate("/hr-login");
+            navigate("/staff-login");
             return null;
         }
 
         return <HRDashboard navigate={navigate} />;
     }
 
-    // HR LOGIN
-    if (path === "/hr-login") {
-        return <Login navigate={navigate} />;
+
+    // HIRING MANAGER DASHBOARD
+if (path === "/hiring-manager-dashboard") {
+    const user = JSON.parse(
+        localStorage.getItem("user") || "null"
+    );
+
+    if (user?.role !== "Hiring Manager") {
+        navigate("/staff-login");
+        return null;
     }
 
-    // HR REGISTER
-    if (path === "/register-hr") {
-        return (
-            <Register
-                accountType="hr"
-                navigate={navigate}
-            />
-        );
+    return <HiringManagerDashboard/>;
+}
+
+// INTERVIEWER DASHBOARD
+if (path === "/interviewer-dashboard") {
+    const user = JSON.parse(
+        localStorage.getItem("user") || "null"
+    );
+
+    if (user?.role !== "Interviewer") {
+        navigate("/staff-login");
+        return null;
+    }
+
+    return <div>Interviewer Dashboard</div>;
+}
+
+// SYSTEM ADMINISTRATOR DASHBOARD
+if (path === "/admin-dashboard") {
+    const user = JSON.parse(
+        localStorage.getItem("user") || "null"
+    );
+
+    if (user?.role !== "System Administrator") {
+        navigate("/staff-login");
+        return null;
+    }
+
+    return <AdminDashboard />;
+}
+
+
+    // Staff login
+    if (path === "/staff-login") {
+        return <Login navigate={navigate} />;
     }
 
     // CANDIDATE LOGIN

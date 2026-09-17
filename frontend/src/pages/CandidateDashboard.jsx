@@ -124,7 +124,12 @@ function CandidateDashboard() {
                 ? data.data
                 : [];
 
-            setJobs(jobData);
+            setJobs(
+    jobData.filter(
+        (job) =>
+            String(job.status || "open").toLowerCase() === "open"
+    )
+);
         } catch (error) {
             console.error(
                 "Error loading jobs:",

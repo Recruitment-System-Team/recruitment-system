@@ -364,7 +364,7 @@ const Home = () => {
                             </div>
 
                             <h3>
-                                For HR teams
+                                For Staff teams
                             </h3>
 
                             <p>
@@ -382,10 +382,10 @@ const Home = () => {
 
                             <button
                                 onClick={() =>
-                                    window.location.href = "/recruitment-system/hr-login"
+                                    window.location.href = "/recruitment-system/staff-login"
                                 }
                             >
-                                HR login
+                                Staff login
                                 <span>→</span>
                             </button>
 
@@ -588,7 +588,7 @@ const Home = () => {
                             <button
                                 onClick={() =>
                                     window.location.href =
-                                        "/recruitment-system/register-hr"
+                                        "/recruitment-system/staff-login"
                                 }
                             >
 
@@ -598,11 +598,11 @@ const Home = () => {
 
                                 <div>
                                     <strong>
-                                        I'm an HR professional
+                                        I'm a staff member
                                     </strong>
 
                                     <small>
-                                        Manage vacancies and candidates
+                                        Access the recruitment workspace
                                     </small>
                                 </div>
 
