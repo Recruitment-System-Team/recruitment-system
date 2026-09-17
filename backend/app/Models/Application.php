@@ -20,6 +20,7 @@ protected $fillable = [
     'experience_score',
     'relevance_score',
     'applied_at',
+    'sent_to_hiring_manager',
 ];
 
 protected $casts = [

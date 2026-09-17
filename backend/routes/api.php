@@ -7,6 +7,7 @@ use App\Http\Controllers\JobPositionController;
 use App\Http\Controllers\CvController;
 use App\Http\Controllers\CandidateController;
 use App\Http\Controllers\ApplicationController;
+use App\Http\Controllers\AdminController;
 
 
 /*
@@ -40,6 +41,11 @@ Route::post('/register-hr', [AuthController::class, 'registerHr']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
+
+Route::middleware('role:System Administrator')->group(function () {
+    Route::get('/admin/users', [AdminController::class, 'index']);
+    Route::post('/admin/users', [AdminController::class, 'store']);
+});
     /*
     |--------------------------------------------------------------------------
     | Authentication
@@ -59,15 +65,26 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('role:HR Manager')->group(function () {
         Route::post('/job-positions', [JobPositionController::class, 'store']);
+
+        Route::patch('/job-positions/{id}/close', [JobPositionController::class, 'closeApplications']);
+        Route::get('/job-positions/{id}/shortlisted', [JobPositionController::class, 'shortlisted']);
         Route::get('/job-positions/{id}', [JobPositionController::class, 'show']);
         Route::delete('/job-positions/{id}', [JobPositionController::class, 'destroy']);
         Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus']);
         Route::post('/applications/{id}/evaluate', [ApplicationController::class, 'evaluate']);
+        Route::post('/applications/send-to-hiring-manager', [ApplicationController::class, 'sendToHiringManager']);
         Route::get('/candidates', [CandidateController::class, 'index']);
         Route::post('/candidates', [CandidateController::class, 'store']);
         Route::get('/candidates/{id}', [CandidateController::class, 'show']);
     });
 
+
+    Route::middleware('role:Hiring Manager')->group(function () {
+    Route::patch(
+        '/applications/{id}/status',
+        [ApplicationController::class, 'updateStatus']
+    );
+});
     /*
     |--------------------------------------------------------------------------
     | Candidates

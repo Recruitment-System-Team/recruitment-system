@@ -62,6 +62,9 @@ function HRDashboard() {
     const [statusUpdating, setStatusUpdating] =
         useState(false);
 
+        const [sendingToHiringManager, setSendingToHiringManager] =
+    useState(false);
+
     // CV extracted text toggle
     const [showExtractedText, setShowExtractedText] =
         useState(false);
@@ -610,6 +613,128 @@ function HRDashboard() {
         }
     };
 
+//close applications for a vacancy
+
+
+    const handleCloseApplications = async (id) => {
+    const vacancy = vacancies.find(
+        (item) => Number(item.id) === Number(id)
+    );
+
+    if (!vacancy) return;
+
+    const confirmed = window.confirm(
+        `Are you sure you want to close applications for "${vacancy.title}"?\n\nCandidates will no longer be able to apply, but existing applications will remain available for recruitment processing.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        setError("");
+
+        const response = await fetch(
+            `${API_URL}/job-positions/${id}/close`,
+            {
+                method: "PATCH",
+
+                headers: {
+                    Accept: "application/json",
+
+                    Authorization:
+                        `Bearer ${token}`,
+                },
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                    "Unable to close applications."
+            );
+        }
+
+        setVacancies((currentVacancies) =>
+            currentVacancies.map((item) =>
+                Number(item.id) === Number(id)
+                    ? {
+                          ...item,
+                          status: "closed",
+                      }
+                    : item
+            )
+        );
+
+    } catch (error) {
+        console.error(error);
+
+        setError(
+            error.message ||
+                "Unable to close applications."
+        );
+    }
+};
+
+
+
+//delete vacancy
+
+const handleDeleteVacancy = async (id) => {
+    const vacancy = vacancies.find(
+        (item) => Number(item.id) === Number(id)
+    );
+
+    if (!vacancy) return;
+
+    const confirmed = window.confirm(
+        `Are you sure you want to delete "${vacancy.title}"?\n\nThis action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        setError("");
+
+        const response = await fetch(
+            `${API_URL}/job-positions/${id}`,
+            {
+                method: "DELETE",
+
+                headers: {
+                    Accept: "application/json",
+
+                    Authorization:
+                        `Bearer ${token}`,
+                },
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                    "Unable to delete vacancy."
+            );
+        }
+
+        setVacancies((currentVacancies) =>
+            currentVacancies.filter(
+                (item) =>
+                    Number(item.id) !== Number(id)
+            )
+        );
+
+    } catch (error) {
+        console.error(error);
+
+        setError(
+            error.message ||
+                "Unable to delete vacancy."
+        );
+    }
+};
     // =========================================================
     // VIEW CANDIDATES FOR A VACANCY
     // =========================================================
@@ -657,27 +782,26 @@ function HRDashboard() {
              * Highest score = #1
              */
 
-            const vacancyApplications =
-                allApplications
-                    .filter(
-                        (application) =>
-                            Number(
-                                application.job_position_id
-                            ) === Number(vacancyId)
-                    )
-                    .sort((a, b) => {
-                        const scoreA =
-                            Number(
-                                a.match_score ?? 0
-                            );
+          const vacancyApplications =
+    allApplications
+        .filter(
+            (application) =>
+                Number(
+                    application.job_position_id
+                ) === Number(vacancyId) &&
+                Number(application.match_score ?? 0) >= 60 &&
+                application.status !== "rejected"
+        )
+        .sort((a, b) => {
+            const scoreA =
+                Number(a.match_score ?? 0);
 
-                        const scoreB =
-                            Number(
-                                b.match_score ?? 0
-                            );
+            const scoreB =
+                Number(b.match_score ?? 0);
 
-                        return scoreB - scoreA;
-                    });
+            return scoreB - scoreA;
+        })
+        .slice(0, 5);
 
             setSelectedCandidate({
                 vacancyId,
@@ -771,6 +895,87 @@ function HRDashboard() {
             );
         }
     };
+
+
+
+    const handleSendToHiringManager = async () => {
+    if (!selectedCandidate?.vacancyId) {
+        return;
+    }
+
+    const confirmed = window.confirm(
+        "Send the top 5 eligible candidates for this vacancy to the Hiring Manager for secondary shortlisting?"
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        setSendingToHiringManager(true);
+        setError("");
+
+        const response = await fetch(
+            `${API_URL}/applications/send-to-hiring-manager`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+
+                body: JSON.stringify({
+                    job_position_id:
+                        selectedCandidate.vacancyId,
+                }),
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                    "Unable to send candidates to the Hiring Manager."
+            );
+        }
+
+        const sentApplications =
+            data.applications || [];
+
+        setSelectedCandidate((current) => {
+            if (!current) return current;
+
+            return {
+                ...current,
+                applications:
+                    sentApplications.length > 0
+                        ? sentApplications
+                        : current.applications,
+            };
+        });
+
+        await fetchApplications();
+
+        alert(
+            "The top eligible candidates have been sent to the Hiring Manager for secondary shortlisting."
+        );
+    } catch (error) {
+        console.error(
+            "SEND TO HIRING MANAGER ERROR:",
+            error
+        );
+
+        setError(
+            error.message ||
+                "Unable to send candidates to the Hiring Manager."
+        );
+    } finally {
+        setSendingToHiringManager(false);
+    }
+};
 
     const handleStatusChange = async (
         applicationId,
@@ -1289,27 +1494,49 @@ function HRDashboard() {
 
                                         <div className="job-actions">
 
-                                            <button
-                                                onClick={() =>
-                                                    handleViewCandidates(
-                                                        vacancy.id
-                                                    )
-                                                }
-                                            >
-                                                Candidates
-                                            </button>
+    <button
+        onClick={() =>
+            handleViewCandidates(
+                vacancy.id
+            )
+        }
+    >
+        Candidates
+    </button>
 
-                                            <button
-                                                onClick={() =>
-                                                    handleViewDetails(
-                                                        vacancy.id
-                                                    )
-                                                }
-                                            >
-                                                Details →
-                                            </button>
+    <button
+        onClick={() =>
+            handleViewDetails(
+                vacancy.id
+            )
+        }
+    >
+        Details →
+    </button>
 
-                                        </div>
+    {String(vacancy.status || "open").toLowerCase() === "open" && (
+        <button
+            onClick={() =>
+                handleCloseApplications(
+                    vacancy.id
+                )
+            }
+        >
+            Close Applications
+        </button>
+    )}
+
+    <button
+        onClick={() =>
+            handleDeleteVacancy(
+                vacancy.id
+            )
+        }
+    >
+        Delete Vacancy
+    </button>
+
+</div>
 
                                     </div>
 
@@ -1565,6 +1792,28 @@ function HRDashboard() {
                                 Candidates who have applied for this
                                 vacancy.
                             </p>
+
+                            {selectedCandidate.applications.length > 0 && (
+    <div className="candidate-handoff">
+
+ <button
+        type="button"
+        className="send-to-hiring-manager-button"
+        onClick={handleSendToHiringManager}
+        disabled={sendingToHiringManager}
+    >
+        {sendingToHiringManager
+            ? "Sending..."
+            : "Send Top 5 to Hiring Manager →"}
+    </button>
+
+    <p>
+        Sends the highest-scoring eligible candidates
+        (60%+) for secondary manual shortlisting.
+    </p>
+
+</div>
+                            )}
 
                             {candidateLoading ? (
 

@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+
+
 function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -14,7 +16,7 @@ function Login() {
 
         try {
             const response = await fetch(
-                `${import.meta.env.VITE_API_URL}/login/hr`,
+                `${import.meta.env.VITE_API_URL}/login`,
                 {
                     method: "POST",
                     headers: {
@@ -45,12 +47,20 @@ function Login() {
 
             // Redirect based on user role
             if (data.user.role === "HR Manager") {
-                window.location.href =
-                    "/recruitment-system/hr-dashboard";
-            } else {
-                window.location.href =
-                    "/recruitment-system/";
-            }
+    window.location.href =
+        "/recruitment-system/hr-dashboard";
+} else if (data.user.role === "Hiring Manager") {
+    window.location.href =
+        "/recruitment-system/hiring-manager-dashboard";
+} else if (data.user.role === "Interviewer") {
+    window.location.href =
+        "/recruitment-system/interviewer-dashboard";
+} else if (data.user.role === "System Administrator") {
+    window.location.href =
+        "/recruitment-system/admin-dashboard";
+} else {
+    setError("You do not have permission to access the staff system.");
+}
 
         } catch (error) {
             console.error(error);
@@ -110,7 +120,7 @@ function Login() {
 
                         <p className="login-description">
                             Access your recruitment workspace and continue
-                            managing your candidates.
+                            managing your tasks.
                         </p>
 
                         <form onSubmit={handleLogin}>
@@ -174,19 +184,9 @@ function Login() {
 
                         </form>
 
-                        <div className="login-footer">
-                            <span>Don't have an account?</span>
-
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    window.location.href =
-                                        "/recruitment-system/register-hr"
-                                }
-                            >
-                                Create account
-                            </button>
-                        </div>
+                       <div className="login-footer">
+    <span>Staff accounts are managed by the System Administrator.</span>
+</div>
 
                     </div>
 
