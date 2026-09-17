@@ -17,6 +17,7 @@ return [
         'http://localhost:5173',
         'http://localhost:5175',
         'http://localhost:5176',
+        'https://recruitment-system-team.github.io',
     ],
 
     'allowed_origins_patterns' => [],
