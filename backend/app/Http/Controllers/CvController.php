@@ -16,6 +16,85 @@ class CvController extends Controller
      * The candidate_id is obtained from the logged-in user's
      * candidate relationship. It is NOT accepted from the request.
      */
+
+    /**
+ * Allow authenticated staff members to view a candidate CV.
+ */
+public function viewForStaff(Request $request, int $id)
+{
+    $user = $request->user();
+
+    if (!$user || !$user->role) {
+        return response()->json([
+            'message' => 'Forbidden.'
+        ], 403);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Staff roles allowed to view CVs
+    |--------------------------------------------------------------------------
+    */
+    $allowedRoles = [
+        'HR Manager',
+        'Hiring Manager',
+        'Interviewer',
+        'System Administrator',
+        'Staff',
+    ];
+
+    $roleName = trim($user->role->name);
+
+    if (!in_array($roleName, $allowedRoles, true)) {
+        return response()->json([
+            'message' => 'Forbidden.',
+        ], 403);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Find CV
+    |--------------------------------------------------------------------------
+    */
+    $cv = Cv::find($id);
+
+    if (!$cv) {
+        return response()->json([
+            'message' => 'CV not found.'
+        ], 404);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Check that the stored file exists
+    |--------------------------------------------------------------------------
+    */
+    $disk = Storage::disk('public');
+
+    if (!$disk->exists($cv->file_path)) {
+        return response()->json([
+            'message' => 'CV file not found.'
+        ], 404);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Return CV inline in browser
+    |--------------------------------------------------------------------------
+    */
+    return response()->file(
+        $disk->path($cv->file_path),
+        [
+            'Content-Type' =>
+                $cv->file_type ?: 'application/pdf',
+
+            'Content-Disposition' =>
+                'inline; filename="' .
+                addslashes($cv->file_name ?? 'cv.pdf') .
+                '"',
+        ]
+    );
+}
     public function store(Request $request)
     {
         /*
@@ -374,5 +453,7 @@ class CvController extends Controller
         return response()->json([
             'cv' => $cv,
         ]);
+
+        
     }
 }

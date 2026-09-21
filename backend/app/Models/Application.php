@@ -21,6 +21,7 @@ protected $fillable = [
     'relevance_score',
     'applied_at',
     'sent_to_hiring_manager',
+    'shortlisted_by_hiring_manager',
 ];
 
 protected $casts = [
@@ -28,6 +29,8 @@ protected $casts = [
     'skills_score' => 'float',
     'experience_score' => 'float',
     'relevance_score' => 'float',
+    'sent_to_hiring_manager' => 'boolean',
+    'shortlisted_by_hiring_manager' => 'boolean',
 ];
 
     public function candidate()
@@ -44,4 +47,11 @@ protected $casts = [
     {
         return $this->belongsTo(Cv::class);
     }
+
+    public function interviews()
+{
+    return $this->hasMany(Interview::class);
 }
+
+}
+

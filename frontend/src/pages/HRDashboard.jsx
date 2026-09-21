@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
+
 import "./HRDashboard.css";
 
 const API_URL =
     import.meta.env.VITE_API_URL ||
-    "http://127.0.0.1:8001/api";
-
-const STORAGE_URL =
-    API_URL.replace(/\/api\/?$/, "") + "/storage";
+    "http://127.0.0.1:8000/api";
 
 function HRDashboard() {
-    const user = JSON.parse(localStorage.getItem("user"));
+    const user = JSON.parse(
+        localStorage.getItem("user") || "null"
+    );
+
     const token = localStorage.getItem("token");
 
     // =========================================================
@@ -17,7 +18,10 @@ function HRDashboard() {
     // =========================================================
 
     const [darkMode, setDarkMode] = useState(() => {
-        return localStorage.getItem("hr-theme") === "dark";
+        return (
+            localStorage.getItem("hr-theme") ===
+            "dark"
+        );
     });
 
     useEffect(() => {
@@ -28,33 +32,27 @@ function HRDashboard() {
     }, [darkMode]);
 
     // =========================================================
-    // STATE
+    // MAIN STATE
     // =========================================================
 
     const [vacancies, setVacancies] = useState([]);
     const [applications, setApplications] = useState([]);
+    const [loading, setLoading] = useState(false);
 
-    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] =
+        useState("");
+
+    const [profileMenuOpen, setProfileMenuOpen] =
+        useState(false);
+
+    const [error, setError] =
+        useState("");
+
     const [applicationsLoading, setApplicationsLoading] =
         useState(true);
 
-    const [detailsLoading, setDetailsLoading] = useState(false);
-
-    const [error, setError] = useState("");
-
-    const [searchTerm, setSearchTerm] = useState("");
-
-    const [showCreateVacancy, setShowCreateVacancy] =
+    const [detailsLoading, setDetailsLoading] =
         useState(false);
-
-    const [selectedVacancy, setSelectedVacancy] =
-        useState(null);
-
-    const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-
-    // Candidate management
-    const [selectedCandidate, setSelectedCandidate] =
-        useState(null);
 
     const [candidateLoading, setCandidateLoading] =
         useState(false);
@@ -62,13 +60,123 @@ function HRDashboard() {
     const [statusUpdating, setStatusUpdating] =
         useState(false);
 
-        const [sendingToHiringManager, setSendingToHiringManager] =
+    const [sendingToHiringManager, setSendingToHiringManager] =
+        useState(false);
+
+   // =========================================================
+// INTERVIEW STATE
+// =========================================================
+
+const [interviewOneCandidates, setInterviewOneCandidates] =
+    useState([]);
+
+const [interviewTwoCandidates, setInterviewTwoCandidates] =
+    useState([]);
+
+const [interviewers, setInterviewers] =
+    useState([]);
+
+const [selectedInterviewOneCandidate, setSelectedInterviewOneCandidate] =
+    useState(null);
+
+const [selectedInterviewTwoCandidate, setSelectedInterviewTwoCandidate] =
+    useState(null);
+
+const [interviewOneDate, setInterviewOneDate] =
+    useState("");
+
+const [interviewTwoDate, setInterviewTwoDate] =
+    useState("");
+
+const [selectedTechLead, setSelectedTechLead] =
+    useState(null);
+
+const [selectedSeniorEngineer, setSelectedSeniorEngineer] =
+    useState(null);
+
+const [selectedHRManager, setSelectedHRManager] =
+    useState(null);
+
+const [selectedHiringManager, setSelectedHiringManager] =
+    useState(null);
+
+const [interviewOneAvailability, setInterviewOneAvailability] =
+    useState({});
+
+const [interviewTwoAvailability, setInterviewTwoAvailability] =
+    useState({});
+
+const [selectedInterviewerProfile, setSelectedInterviewerProfile] =
+    useState(null);
+
+const [interviewLoading, setInterviewLoading] =
     useState(false);
 
-    // CV extracted text toggle
+const [interviewersLoading, setInterviewersLoading] =
+    useState(false);
+
+const [availabilityLoading, setAvailabilityLoading] =
+    useState(false);
+
+const [schedulingInterview, setSchedulingInterview] =
+    useState(false);
+
+const [interviewMessage, setInterviewMessage] =
+    useState("");
+
+
+    const [selectedInterviewProfileCandidate, setSelectedInterviewProfileCandidate] =
+    useState(null);
+
+const [selectedInterviewProfileNumber, setSelectedInterviewProfileNumber] =
+    useState(1);
+
+const [interviewProfileStatus, setInterviewProfileStatus] =
+    useState("interview");
+    // =========================================================
+    // NAVIGATION
+    // =========================================================
+
+    const [activeSection, setActiveSection] =
+        useState("job-postings");
+
+    const [activeVacancyId, setActiveVacancyId] =
+        useState(null);
+
+    const [selectedVacancy, setSelectedVacancy] =
+        useState(null);
+
+    // =========================================================
+    // CANDIDATES
+    // =========================================================
+
+    const [
+        vacancyCandidateApplications,
+        setVacancyCandidateApplications,
+    ] = useState([]);
+
+    const [selectedCandidate, setSelectedCandidate] =
+        useState(null);
+
     const [showExtractedText, setShowExtractedText] =
         useState(false);
 
+    const [
+        expandedPrimaryCandidateId,
+        setExpandedPrimaryCandidateId,
+    ] = useState(null);
+
+    const [
+        primaryExtractedTextId,
+        setPrimaryExtractedTextId,
+    ] = useState(null);
+
+    // =========================================================
+    // NEW VACANCY
+    // =========================================================
+
+
+    const [showCreateVacancy, setShowCreateVacancy] = useState(false);
     const [newVacancy, setNewVacancy] = useState({
         title: "",
         department: "Human Resources",
@@ -102,19 +210,24 @@ function HRDashboard() {
                 `${API_URL}/job-positions`,
                 {
                     method: "GET",
+
                     headers: {
-                        Accept: "application/json",
-                        Authorization: `Bearer ${token}`,
+                        Accept:
+                            "application/json",
+
+                        Authorization:
+                            `Bearer ${token}`,
                     },
                 }
             );
 
-            const data = await response.json();
+            const data =
+                await response.json();
 
             if (!response.ok) {
                 throw new Error(
                     data.message ||
-                        "Failed to load vacancies."
+                    "Failed to load vacancies."
                 );
             }
 
@@ -127,13 +240,15 @@ function HRDashboard() {
                       [];
 
             setVacancies(jobs);
+
         } catch (error) {
             console.error(error);
 
             setError(
                 error.message ||
-                    "Unable to load vacancies."
+                "Unable to load vacancies."
             );
+
         } finally {
             setLoading(false);
         }
@@ -151,24 +266,24 @@ function HRDashboard() {
                 `${API_URL}/applications`,
                 {
                     method: "GET",
+
                     headers: {
-                        Accept: "application/json",
-                        Authorization: `Bearer ${token}`,
+                        Accept:
+                            "application/json",
+
+                        Authorization:
+                            `Bearer ${token}`,
                     },
                 }
             );
 
-            const data = await response.json();
-
-            console.log(
-                "APPLICATION API RESPONSE:",
-                data
-            );
+            const data =
+                await response.json();
 
             if (!response.ok) {
                 throw new Error(
                     data.message ||
-                        `Failed to load applications. Status: ${response.status}`
+                    `Failed to load applications. Status: ${response.status}`
                 );
             }
 
@@ -176,22 +291,26 @@ function HRDashboard() {
 
             if (Array.isArray(data)) {
                 applicationList = data;
+
             } else if (
-                Array.isArray(data.applications)
+                Array.isArray(
+                    data.applications
+                )
             ) {
-                applicationList = data.applications;
+                applicationList =
+                    data.applications;
+
             } else if (
                 Array.isArray(data.data)
             ) {
-                applicationList = data.data;
+                applicationList =
+                    data.data;
             }
 
-            console.log(
-                "APPLICATIONS LOADED:",
+            setApplications(
                 applicationList
             );
 
-            setApplications(applicationList);
         } catch (error) {
             console.error(
                 "APPLICATION LOADING ERROR:",
@@ -203,79 +322,106 @@ function HRDashboard() {
             );
 
             setApplications([]);
+
         } finally {
             setApplicationsLoading(false);
         }
     };
 
     // =========================================================
-    // GET CANDIDATE COUNT FOR A VACANCY
+    // CANDIDATE COUNT
     // =========================================================
 
-    const getCandidateCount = (jobPositionId) => {
+    const getCandidateCount = (
+        jobPositionId
+    ) => {
         return applications.filter(
             (application) =>
-                Number(application.job_position_id) ===
+                Number(
+                    application.job_position_id
+                ) ===
                 Number(jobPositionId)
         ).length;
     };
 
     // =========================================================
-    // ADD CANDIDATE COUNTS TO VACANCIES
+    // VACANCIES WITH COUNTS
     // =========================================================
 
-    const vacanciesWithCounts = useMemo(() => {
-        return vacancies.map((vacancy) => ({
-            ...vacancy,
+    const vacanciesWithCounts =
+        useMemo(() => {
+            return vacancies.map(
+                (vacancy) => ({
+                    ...vacancy,
 
-            candidates_count:
-                getCandidateCount(vacancy.id),
-        }));
-    }, [vacancies, applications]);
+                    candidates_count:
+                        getCandidateCount(
+                            vacancy.id
+                        ),
+                })
+            );
+        }, [
+            vacancies,
+            applications,
+        ]);
 
     // =========================================================
     // SEARCH
     // =========================================================
 
-    const filteredVacancies = useMemo(() => {
-        const search = searchTerm
-            .trim()
-            .toLowerCase();
+    const filteredVacancies =
+        useMemo(() => {
+            const search =
+                searchTerm
+                    .trim()
+                    .toLowerCase();
 
-        if (!search) {
-            return vacanciesWithCounts;
-        }
+            if (!search) {
+                return vacanciesWithCounts;
+            }
 
-        return vacanciesWithCounts.filter(
-            (vacancy) =>
-                vacancy.title
-                    ?.toLowerCase()
-                    .includes(search) ||
-                vacancy.department
-                    ?.toLowerCase()
-                    .includes(search) ||
-                vacancy.employment_type
-                    ?.toLowerCase()
-                    .includes(search)
-        );
-    }, [vacanciesWithCounts, searchTerm]);
+            return vacanciesWithCounts.filter(
+                (vacancy) =>
+                    vacancy.title
+                        ?.toLowerCase()
+                        .includes(search) ||
+
+                    vacancy.department
+                        ?.toLowerCase()
+                        .includes(search) ||
+
+                    vacancy.employment_type
+                        ?.toLowerCase()
+                        .includes(search)
+            );
+        }, [
+            vacanciesWithCounts,
+            searchTerm,
+        ]);
 
     // =========================================================
     // SUMMARY
     // =========================================================
 
-    const openVacancies = vacancies.filter(
-        (vacancy) =>
-            String(vacancy.status || "open")
-                .toLowerCase() === "open"
-    ).length;
+    const openVacancies =
+        vacancies.filter(
+            (vacancy) =>
+                String(
+                    vacancy.status ||
+                    "open"
+                ).toLowerCase() ===
+                "open"
+        ).length;
 
-    const totalCandidates = applications.length;
+    const totalCandidates =
+        applications.length;
 
-    const shortlistedCandidates = applications.filter(
-        (application) =>
-            application.status === "shortlisted"
-    ).length;
+    const shortlistedCandidates =
+        applications.filter(
+            (application) =>
+                application.status ===
+                "shortlisted"
+        ).length;
 
     // =========================================================
     // CV STATISTICS
@@ -284,90 +430,105 @@ function HRDashboard() {
     const getCvStats = (cv) => {
         if (!cv) {
             return {
-                experience: "Not available",
-                skills: "Not available",
-                education: "Not available",
-                certifications: "Not available",
-                languages: "Not available",
+                experience:
+                    "Not available",
+
+                skills:
+                    "Not available",
+
+                education:
+                    "Not available",
+
+                certifications:
+                    "Not available",
+
+                languages:
+                    "Not available",
             };
         }
 
-        const text = cv.extracted_text || "";
+        const text =
+            cv.extracted_text || "";
 
-        // EXPERIENCE
+        const experienceMatch =
+            text.match(
+                /(\d+)\+?\s*years?\s*(?:of\s*)?experience/i
+            );
 
-        const experienceMatch = text.match(
-            /(\d+)\+?\s*years?\s*(?:of\s*)?experience/i
-        );
+        const experience =
+            experienceMatch
+                ? `${experienceMatch[1]}+ years`
+                : "Not specified";
 
-        const experience = experienceMatch
-            ? `${experienceMatch[1]}+ years`
-            : "Not specified";
+        let skills =
+            "Not specified";
 
-        // SKILLS
-
-        let skills = "Not specified";
-
-        const skillsMatch = text.match(
-            /CORE SKILLS\s*([\s\S]*?)(?:PROFESSIONAL EXPERIENCE|EXPERIENCE|EDUCATION)/i
-        );
+        const skillsMatch =
+            text.match(
+                /CORE SKILLS\s*([\s\S]*?)(?:PROFESSIONAL EXPERIENCE|EXPERIENCE|EDUCATION)/i
+            );
 
         if (skillsMatch) {
-            const skillText = skillsMatch[1]
-                .replace(/\n/g, " ")
-                .trim();
+            const skillText =
+                skillsMatch[1]
+                    .replace(/\n/g, " ")
+                    .trim();
 
-            const skillList = skillText
-                .split(/\s{2,}|(?=[A-Z][a-z])/)
-                .map((skill) => skill.trim())
-                .filter(Boolean);
+            const skillList =
+                skillText
+                    .split(
+                        /\s{2,}|(?=[A-Z][a-z])/
+                    )
+                    .map(
+                        (skill) =>
+                            skill.trim()
+                    )
+                    .filter(Boolean);
 
-            if (skillList.length > 0) {
+            if (
+                skillList.length > 0
+            ) {
                 skills =
-                    skillList.length >= 9
+                    skillList.length >=
+                    9
                         ? "9+ core skills"
                         : `${skillList.length} core skills`;
             }
         }
 
-        // EDUCATION
+        let education =
+            "Not specified";
 
-        let education = "Not specified";
-
-        const educationMatch = text.match(
-            /EDUCATION\s*([\s\S]*?)(?:CERTIFICATIONS|ADDITIONAL INFORMATION|PROFESSIONAL EXPERIENCE|$)/i
-        );
+        const educationMatch =
+            text.match(
+                /EDUCATION\s*([\s\S]*?)(?:CERTIFICATIONS|ADDITIONAL INFORMATION|PROFESSIONAL EXPERIENCE|$)/i
+            );
 
         if (educationMatch) {
-            const educationText = educationMatch[1]
-                .replace(/\n/g, " ")
-                .trim();
+            const educationText =
+                educationMatch[1]
+                    .replace(/\n/g, " ")
+                    .trim();
 
             if (educationText) {
-                if (
-                    educationText
-                        .toLowerCase()
-                        .includes("human resource")
-                ) {
-                    education =
-                        "BBA — HR Management";
-                } else {
-                    education =
-                        educationText.length > 35
-                            ? educationText.substring(0, 35) +
-                              "..."
-                            : educationText;
-                }
+                education =
+                    educationText.length >
+                    35
+                        ? educationText.substring(
+                              0,
+                              35
+                          ) + "..."
+                        : educationText;
             }
         }
 
-        // CERTIFICATIONS
+        let certifications =
+            "Not specified";
 
-        let certifications = "Not specified";
-
-        const certificationMatch = text.match(
-            /CERTIFICATIONS\s*([\s\S]*?)(?:ADDITIONAL INFORMATION|$)/i
-        );
+        const certificationMatch =
+            text.match(
+                /CERTIFICATIONS\s*([\s\S]*?)(?:ADDITIONAL INFORMATION|$)/i
+            );
 
         if (certificationMatch) {
             const certificationText =
@@ -376,15 +537,22 @@ function HRDashboard() {
             const certificationLines =
                 certificationText
                     .split("\n")
-                    .map((line) => line.trim())
+                    .map(
+                        (line) =>
+                            line.trim()
+                    )
                     .filter(
                         (line) =>
                             line &&
-                            !line.match(/^[-•]/)
+                            !line.match(
+                                /^[-•]/
+                            )
                     );
 
             const bulletCount =
-                certificationText.match(/[-•]/g);
+                certificationText.match(
+                    /[-•]/g
+                );
 
             const count =
                 bulletCount?.length ||
@@ -393,28 +561,36 @@ function HRDashboard() {
             if (count > 0) {
                 certifications =
                     `${count} certification${
-                        count !== 1 ? "s" : ""
+                        count !== 1
+                            ? "s"
+                            : ""
                     }`;
             }
         }
 
-        // LANGUAGES
+        let languages =
+            "Not specified";
 
-        let languages = "Not specified";
-
-        const languageMatch = text.match(
-            /Languages?:\s*(.+)/i
-        );
+        const languageMatch =
+            text.match(
+                /Languages?:\s*(.+)/i
+            );
 
         if (languageMatch) {
-            languages = languageMatch[1]
-                .split("\n")[0]
-                .trim();
+            languages =
+                languageMatch[1]
+                    .split("\n")[0]
+                    .trim();
 
-            if (languages.length > 35) {
+            if (
+                languages.length >
+                35
+            ) {
                 languages =
-                    languages.substring(0, 35) +
-                    "...";
+                    languages.substring(
+                        0,
+                        35
+                    ) + "...";
             }
         }
 
@@ -428,130 +604,384 @@ function HRDashboard() {
     };
 
     // =========================================================
-    // MATCHING STATISTICS
+    // MATCHING
     // =========================================================
 
-    const getMatchScore = (application) => {
-        const score = Number(application?.match_score);
+    const getMatchScore = (
+        application
+    ) => {
+        const score = Number(
+            application?.match_score
+        );
 
         if (!Number.isFinite(score)) {
             return null;
         }
 
-        return Math.max(0, Math.min(100, score));
+        return Math.max(
+            0,
+            Math.min(100, score)
+        );
     };
 
-    const getMatchCategory = (application) => {
+    const getMatchCategory = (
+        application
+    ) => {
         if (application?.category) {
             return application.category;
         }
 
-        const score = getMatchScore(application);
+        const score =
+            getMatchScore(
+                application
+            );
 
         if (score === null) {
             return "Not evaluated";
         }
 
-        if (score >= 80) return "Strong Match";
-        if (score >= 60) return "Good Match";
-        if (score >= 40) return "Possible Match";
+        if (score >= 80)
+            return "Strong Match";
+
+        if (score >= 60)
+            return "Good Match";
+
+        if (score >= 40)
+            return "Possible Match";
 
         return "Weak Match";
     };
 
+   // =========================================================
+// VIEW CV
+// =========================================================
+
+const handleViewCv = async (cv) => {
+    try {
+        const token = localStorage.getItem("token");
+
+        if (!cv?.id) {
+            alert("CV information is not available.");
+            return;
+        }
+
+        const cvApiUrl = `${API_URL}/cvs/${cv.id}/view`;
+
+        console.log("Opening CV:", cvApiUrl);
+
+        const response = await fetch(cvApiUrl, {
+            method: "GET",
+            headers: {
+                Accept: "application/pdf",
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+
+            console.error(
+                "CV VIEW ERROR:",
+                response.status,
+                errorText
+            );
+
+            throw new Error(
+                `CV request failed with status ${response.status}`
+            );
+        }
+
+        const blob = await response.blob();
+
+        const blobUrl =
+            window.URL.createObjectURL(blob);
+
+        window.open(blobUrl, "_blank");
+
+        setTimeout(() => {
+            window.URL.revokeObjectURL(blobUrl);
+        }, 60000);
+    } catch (error) {
+        console.error("CV VIEW ERROR:", error);
+
+        alert("Unable to open the CV.");
+    }
+};
     // =========================================================
     // CREATE VACANCY
     // =========================================================
 
-    const handleCreateVacancy = async (e) => {
-        e.preventDefault();
+    const handleCreateVacancy =
+        async (e) => {
+            e.preventDefault();
 
+            try {
+                setError("");
+
+                const response =
+                    await fetch(
+                        `${API_URL}/job-positions`,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+
+                                Accept:
+                                    "application/json",
+
+                                Authorization:
+                                    `Bearer ${token}`,
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    {
+                                        title:
+                                            newVacancy.title,
+
+                                        department:
+                                            newVacancy.department,
+
+                                        description:
+                                            newVacancy.description,
+
+                                        responsibilities:
+                                            newVacancy.responsibilities,
+
+                                        minimum_experience:
+                                            Number(
+                                                newVacancy.minimum_experience
+                                            ),
+
+                                        employment_type:
+                                            newVacancy.employment_type,
+
+                                        status:
+                                            newVacancy.status,
+                                    }
+                                ),
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message ||
+                        "Failed to create vacancy."
+                    );
+                }
+
+                const createdJob =
+                    data.job ||
+                    data.data ||
+                    data.job_position ||
+                    data;
+
+                setVacancies(
+                    (
+                        currentVacancies
+                    ) => [
+                        ...currentVacancies,
+                        createdJob,
+                    ]
+                );
+
+                setNewVacancy({
+                    title: "",
+                    department:
+                        "Human Resources",
+                    description: "",
+                    responsibilities:
+                        "",
+                    minimum_experience: 0,
+                    employment_type:
+                        "Full time",
+                    status: "open",
+                });
+
+                setShowCreateVacancy(
+                    false
+                );
+
+                await fetchVacancies();
+
+            } catch (error) {
+                console.error(error);
+
+                setError(
+                    error.message ||
+                    "Unable to create vacancy."
+                );
+            }
+        };
+
+    // =========================================================
+    // OPEN VACANCY CANDIDATES
+    // =========================================================
+
+    const openVacancyCandidates = (
+        vacancy
+    ) => {
+        if (!vacancy) return;
+
+        setCandidateLoading(true);
+
+        const vacancyApplications =
+            applications
+                .filter(
+                    (application) =>
+                        Number(
+                            application.job_position_id
+                        ) ===
+                        Number(vacancy.id)
+                )
+                .sort((a, b) => {
+                    return (
+                        Number(
+                            b.match_score ??
+                            0
+                        ) -
+                        Number(
+                            a.match_score ??
+                            0
+                        )
+                    );
+                });
+
+        setSelectedVacancy(
+            vacancy
+        );
+
+        setActiveVacancyId(
+            vacancy.id
+        );
+
+        setVacancyCandidateApplications(
+            vacancyApplications
+        );
+
+        setSelectedCandidate(
+            null
+        );
+
+        setShowExtractedText(
+            false
+        );
+
+        setActiveSection(
+            "vacancy-candidates"
+        );
+
+        setCandidateLoading(
+            false
+        );
+    };
+
+
+    // =========================================================
+    // PRIMARY SHORTLIST  ("Job Postings" flow)
+    // =========================================================
+    //
+    // Business rule:
+    // - 60%+ match score candidates only, never below.
+    // - Highest 5 are eligible to send to the Hiring Manager
+    //   for secondary shortlisting.
+    // - Triggered ONLY from clicking a vacancy card /
+    //   "Candidates" inside Job Postings.
+    //
+    // =========================================================
+
+    const handleViewPrimaryShortlist = async (
+        vacancyId
+    ) => {
         try {
+            setCandidateLoading(true);
             setError("");
 
             const response = await fetch(
-                `${API_URL}/job-positions`,
+                `${API_URL}/applications`,
                 {
-                    method: "POST",
-
+                    method: "GET",
                     headers: {
-                        "Content-Type":
-                            "application/json",
-
                         Accept:
                             "application/json",
-
                         Authorization:
                             `Bearer ${token}`,
                     },
-
-                    body: JSON.stringify({
-                        title:
-                            newVacancy.title,
-
-                        department:
-                            newVacancy.department,
-
-                        description:
-                            newVacancy.description,
-
-                        responsibilities:
-                            newVacancy.responsibilities,
-
-                        minimum_experience:
-                            Number(
-                                newVacancy.minimum_experience
-                            ),
-
-                        employment_type:
-                            newVacancy.employment_type,
-
-                        status:
-                            newVacancy.status,
-                    }),
                 }
             );
 
-            const data = await response.json();
+            const data =
+                await response.json();
 
             if (!response.ok) {
                 throw new Error(
                     data.message ||
-                        "Failed to create vacancy."
+                        "Unable to load candidates."
                 );
             }
 
-            const createdJob =
-                data.job ||
-                data.data ||
-                data.job_position ||
-                data;
+            const allApplications =
+                Array.isArray(data)
+                    ? data
+                    : data.applications ||
+                      data.data ||
+                      [];
 
-            setVacancies((currentVacancies) => [
-                ...currentVacancies,
-                createdJob,
-            ]);
+            const primaryShortlist =
+                allApplications
+                    .filter(
+                        (application) =>
+                            Number(
+                                application.job_position_id
+                            ) ===
+                                Number(
+                                    vacancyId
+                                ) &&
+                            Number(
+                                application.match_score ??
+                                    0
+                            ) >= 60 &&
+                            application.status !==
+                                "rejected"
+                    )
+                    .sort((a, b) => {
+                        return (
+                            Number(
+                                b.match_score ??
+                                    0
+                            ) -
+                            Number(
+                                a.match_score ??
+                                    0
+                            )
+                        );
+                    })
+                    .slice(0, 5);
 
-            setNewVacancy({
-                title: "",
-                department: "Human Resources",
-                description: "",
-                responsibilities: "",
-                minimum_experience: 0,
-                employment_type: "Full time",
-                status: "open",
+            setSelectedCandidate({
+                vacancyId,
+                applications:
+                    primaryShortlist,
+                primaryShortlist: true,
             });
 
-            setShowCreateVacancy(false);
-
-            await fetchVacancies();
+            setShowExtractedText(false);
+            setExpandedPrimaryCandidateId(null);
+            setPrimaryExtractedTextId(null);
         } catch (error) {
             console.error(error);
 
             setError(
                 error.message ||
-                    "Unable to create vacancy."
+                    "Unable to load primary shortlist."
             );
+        } finally {
+            setCandidateLoading(false);
         }
     };
 
@@ -563,24 +993,22 @@ function HRDashboard() {
         try {
             setDetailsLoading(true);
             setError("");
-            setSelectedVacancy(null);
 
             const response = await fetch(
                 `${API_URL}/job-positions/${id}`,
                 {
                     method: "GET",
-
                     headers: {
                         Accept:
                             "application/json",
-
                         Authorization:
                             `Bearer ${token}`,
                     },
                 }
             );
 
-            const data = await response.json();
+            const data =
+                await response.json();
 
             if (!response.ok) {
                 throw new Error(
@@ -597,10 +1025,14 @@ function HRDashboard() {
 
             setSelectedVacancy({
                 ...vacancy,
-
                 candidates_count:
                     getCandidateCount(id),
             });
+
+            setActiveVacancyId(id);
+            setActiveSection(
+                "vacancy-details"
+            );
         } catch (error) {
             console.error(error);
 
@@ -613,369 +1045,273 @@ function HRDashboard() {
         }
     };
 
-//close applications for a vacancy
-
-
-    const handleCloseApplications = async (id) => {
-    const vacancy = vacancies.find(
-        (item) => Number(item.id) === Number(id)
-    );
-
-    if (!vacancy) return;
-
-    const confirmed = window.confirm(
-        `Are you sure you want to close applications for "${vacancy.title}"?\n\nCandidates will no longer be able to apply, but existing applications will remain available for recruitment processing.`
-    );
-
-    if (!confirmed) return;
-
-    try {
-        setError("");
-
-        const response = await fetch(
-            `${API_URL}/job-positions/${id}/close`,
-            {
-                method: "PATCH",
-
-                headers: {
-                    Accept: "application/json",
-
-                    Authorization:
-                        `Bearer ${token}`,
-                },
-            }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                data.message ||
-                    "Unable to close applications."
-            );
-        }
-
-        setVacancies((currentVacancies) =>
-            currentVacancies.map((item) =>
-                Number(item.id) === Number(id)
-                    ? {
-                          ...item,
-                          status: "closed",
-                      }
-                    : item
-            )
-        );
-
-    } catch (error) {
-        console.error(error);
-
-        setError(
-            error.message ||
-                "Unable to close applications."
-        );
-    }
-};
-
-
-
-//delete vacancy
-
-const handleDeleteVacancy = async (id) => {
-    const vacancy = vacancies.find(
-        (item) => Number(item.id) === Number(id)
-    );
-
-    if (!vacancy) return;
-
-    const confirmed = window.confirm(
-        `Are you sure you want to delete "${vacancy.title}"?\n\nThis action cannot be undone.`
-    );
-
-    if (!confirmed) return;
-
-    try {
-        setError("");
-
-        const response = await fetch(
-            `${API_URL}/job-positions/${id}`,
-            {
-                method: "DELETE",
-
-                headers: {
-                    Accept: "application/json",
-
-                    Authorization:
-                        `Bearer ${token}`,
-                },
-            }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(
-                data.message ||
-                    "Unable to delete vacancy."
-            );
-        }
-
-        setVacancies((currentVacancies) =>
-            currentVacancies.filter(
-                (item) =>
-                    Number(item.id) !== Number(id)
-            )
-        );
-
-    } catch (error) {
-        console.error(error);
-
-        setError(
-            error.message ||
-                "Unable to delete vacancy."
-        );
-    }
-};
     // =========================================================
-    // VIEW CANDIDATES FOR A VACANCY
+    // CLOSE APPLICATIONS
     // =========================================================
 
-    const handleViewCandidates = async (vacancyId) => {
+    const handleCloseApplications = async (
+        id
+    ) => {
+        const vacancy = vacancies.find(
+            (item) =>
+                Number(item.id) ===
+                Number(id)
+        );
+
+        if (!vacancy) return;
+
+        const confirmed =
+            window.confirm(
+                `Are you sure you want to close applications for "${vacancy.title}"?\n\nCandidates will no longer be able to apply, but existing applications will remain available.`
+            );
+
+        if (!confirmed) return;
+
         try {
-            setCandidateLoading(true);
             setError("");
 
             const response = await fetch(
-                `${API_URL}/applications`,
+                `${API_URL}/job-positions/${id}/close`,
                 {
-                    method: "GET",
-
+                    method: "PATCH",
                     headers: {
                         Accept:
                             "application/json",
-
                         Authorization:
                             `Bearer ${token}`,
                     },
                 }
             );
 
-            const data = await response.json();
+            const data =
+                await response.json();
 
             if (!response.ok) {
                 throw new Error(
                     data.message ||
-                        "Unable to load candidates."
+                        "Unable to close applications."
                 );
             }
 
-            const allApplications =
-                Array.isArray(data)
-                    ? data
-                    : data.applications ||
-                      data.data ||
-                      [];
-
-            /*
-             * Filter candidates belonging to this vacancy
-             * and automatically rank them by match score.
-             *
-             * Highest score = #1
-             */
-
-          const vacancyApplications =
-    allApplications
-        .filter(
-            (application) =>
-                Number(
-                    application.job_position_id
-                ) === Number(vacancyId) &&
-                Number(application.match_score ?? 0) >= 60 &&
-                application.status !== "rejected"
-        )
-        .sort((a, b) => {
-            const scoreA =
-                Number(a.match_score ?? 0);
-
-            const scoreB =
-                Number(b.match_score ?? 0);
-
-            return scoreB - scoreA;
-        })
-        .slice(0, 5);
-
-            setSelectedCandidate({
-                vacancyId,
-                applications:
-                    vacancyApplications,
-            });
-
-            // Start with extracted text hidden
-            setShowExtractedText(false);
+            setVacancies(
+                (currentVacancies) =>
+                    currentVacancies.map(
+                        (item) =>
+                            Number(item.id) ===
+                            Number(id)
+                                ? {
+                                      ...item,
+                                      status: "closed",
+                                  }
+                                : item
+                    )
+            );
         } catch (error) {
             console.error(error);
 
             setError(
                 error.message ||
-                    "Unable to load candidates."
+                    "Unable to close applications."
             );
-        } finally {
-            setCandidateLoading(false);
         }
     };
 
     // =========================================================
-    // UPDATE APPLICATION STATUS
+    // DELETE VACANCY
     // =========================================================
 
-    const deleteVacancy = async (vacancyId) => {
-        const confirmed = window.confirm(
-            "Are you sure you want to delete this vacancy?\n\nThis action cannot be undone."
+    const handleDeleteVacancy = async (
+        id
+    ) => {
+        const vacancy = vacancies.find(
+            (item) =>
+                Number(item.id) ===
+                Number(id)
         );
 
-        if (!confirmed) {
-            return;
-        }
+        if (!vacancy) return;
+
+        const confirmed =
+            window.confirm(
+                `Are you sure you want to delete "${vacancy.title}"?\n\nThis action cannot be undone.`
+            );
+
+        if (!confirmed) return;
 
         try {
             setError("");
 
             const response = await fetch(
-                `${API_URL}/job-positions/${vacancyId}`,
+                `${API_URL}/job-positions/${id}`,
                 {
                     method: "DELETE",
                     headers: {
-                        Accept: "application/json",
-                        Authorization: `Bearer ${token}`,
+                        Accept:
+                            "application/json",
+                        Authorization:
+                            `Bearer ${token}`,
                     },
                 }
             );
 
-            const data = await response
-                .json()
-                .catch(() => ({}));
+            const data =
+                await response
+                    .json()
+                    .catch(() => ({}));
 
             if (!response.ok) {
                 throw new Error(
                     data.message ||
-                        "Failed to delete vacancy."
+                        "Unable to delete vacancy."
                 );
             }
 
-            setVacancies((currentVacancies) =>
-                currentVacancies.filter(
-                    (vacancy) =>
-                        Number(vacancy.id) !==
-                        Number(vacancyId)
-                )
+            setVacancies(
+                (currentVacancies) =>
+                    currentVacancies.filter(
+                        (item) =>
+                            Number(item.id) !==
+                            Number(id)
+                    )
             );
 
-            setApplications((currentApplications) =>
-                currentApplications.filter(
-                    (application) =>
-                        Number(
-                            application.job_position_id
-                        ) !== Number(vacancyId)
-                )
+            setApplications(
+                (currentApplications) =>
+                    currentApplications.filter(
+                        (application) =>
+                            Number(
+                                application.job_position_id
+                            ) !==
+                            Number(id)
+                    )
             );
 
-            setSelectedVacancy(null);
-
-            console.log(
-                "Vacancy deleted successfully."
-            );
+            if (
+                Number(activeVacancyId) ===
+                Number(id)
+            ) {
+                setActiveVacancyId(null);
+                setSelectedVacancy(null);
+                setVacancyCandidateApplications(
+                    []
+                );
+                setActiveSection(
+                    "job-postings"
+                );
+            }
         } catch (error) {
-            console.error(
-                "DELETE VACANCY ERROR:",
-                error
-            );
+            console.error(error);
 
             setError(
                 error.message ||
-                    "Something went wrong while deleting the vacancy."
+                    "Unable to delete vacancy."
             );
         }
     };
 
+    // =========================================================
+    // SEND TOP 5 TO HIRING MANAGER
+    // =========================================================
 
-
-    const handleSendToHiringManager = async () => {
-    if (!selectedCandidate?.vacancyId) {
-        return;
-    }
-
-    const confirmed = window.confirm(
-        "Send the top 5 eligible candidates for this vacancy to the Hiring Manager for secondary shortlisting?"
-    );
-
-    if (!confirmed) {
-        return;
-    }
-
-    try {
-        setSendingToHiringManager(true);
-        setError("");
-
-        const response = await fetch(
-            `${API_URL}/applications/send-to-hiring-manager`,
-            {
-                method: "POST",
-
-                headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-
-                body: JSON.stringify({
-                    job_position_id:
-                        selectedCandidate.vacancyId,
-                }),
+    const handleSendToHiringManager =
+        async () => {
+            if (
+                !selectedCandidate?.vacancyId
+            ) {
+                return;
             }
-        );
 
-        const data = await response.json();
+            const confirmed =
+                window.confirm(
+                    "Send the top 5 eligible candidates for this vacancy to the Hiring Manager for secondary shortlisting?"
+                );
 
-        if (!response.ok) {
-            throw new Error(
-                data.message ||
-                    "Unable to send candidates to the Hiring Manager."
-            );
-        }
+            if (!confirmed) return;
 
-        const sentApplications =
-            data.applications || [];
+            try {
+                setSendingToHiringManager(
+                    true
+                );
 
-        setSelectedCandidate((current) => {
-            if (!current) return current;
+                setError("");
 
-            return {
-                ...current,
-                applications:
-                    sentApplications.length > 0
-                        ? sentApplications
-                        : current.applications,
-            };
-        });
+                const response =
+                    await fetch(
+                        `${API_URL}/applications/send-to-hiring-manager`,
+                        {
+                            method: "POST",
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+                                Accept:
+                                    "application/json",
+                                Authorization:
+                                    `Bearer ${token}`,
+                            },
+                            body: JSON.stringify(
+                                {
+                                    job_position_id:
+                                        selectedCandidate.vacancyId,
+                                }
+                            ),
+                        }
+                    );
 
-        await fetchApplications();
+                const data =
+                    await response.json();
 
-        alert(
-            "The top eligible candidates have been sent to the Hiring Manager for secondary shortlisting."
-        );
-    } catch (error) {
-        console.error(
-            "SEND TO HIRING MANAGER ERROR:",
-            error
-        );
+                if (!response.ok) {
+                    throw new Error(
+                        data.message ||
+                            "Unable to send candidates to the Hiring Manager."
+                    );
+                }
 
-        setError(
-            error.message ||
-                "Unable to send candidates to the Hiring Manager."
-        );
-    } finally {
-        setSendingToHiringManager(false);
-    }
-};
+                const sentApplications =
+                    data.applications ||
+                    [];
+
+                setSelectedCandidate(
+                    (current) => {
+                        if (!current)
+                            return current;
+
+                        return {
+                            ...current,
+                            applications:
+                                sentApplications.length >
+                                0
+                                    ? sentApplications
+                                    : current.applications,
+                        };
+                    }
+                );
+
+                await fetchApplications();
+
+                alert(
+                    "The top eligible candidates have been sent to the Hiring Manager."
+                );
+            } catch (error) {
+                console.error(
+                    "SEND TO HIRING MANAGER ERROR:",
+                    error
+                );
+
+                setError(
+                    error.message ||
+                        "Unable to send candidates to the Hiring Manager."
+                );
+            } finally {
+                setSendingToHiringManager(
+                    false
+                );
+            }
+        };
+
+    // =========================================================
+    // UPDATE APPLICATION STATUS
+    // =========================================================
 
     const handleStatusChange = async (
         applicationId,
@@ -989,25 +1325,22 @@ const handleDeleteVacancy = async (id) => {
                 `${API_URL}/applications/${applicationId}/status`,
                 {
                     method: "PATCH",
-
                     headers: {
                         "Content-Type":
                             "application/json",
-
                         Accept:
                             "application/json",
-
                         Authorization:
                             `Bearer ${token}`,
                     },
-
                     body: JSON.stringify({
                         status: newStatus,
                     }),
                 }
             );
 
-            const data = await response.json();
+            const data =
+                await response.json();
 
             if (!response.ok) {
                 throw new Error(
@@ -1016,28 +1349,43 @@ const handleDeleteVacancy = async (id) => {
                 );
             }
 
-            // Update candidate modal immediately
+            setVacancyCandidateApplications(
+                (current) =>
+                    current.map(
+                        (application) =>
+                            application.id ===
+                            applicationId
+                                ? {
+                                      ...application,
+                                      status: newStatus,
+                                  }
+                                : application
+                    )
+            );
 
-            setSelectedCandidate((current) => {
-                if (!current) return current;
+            setSelectedCandidate(
+                (current) => {
+                    if (!current)
+                        return current;
 
-                return {
-                    ...current,
-
-                    applications:
-                        current.applications.map(
-                            (application) =>
-                                application.id ===
-                                applicationId
-                                    ? {
-                                          ...application,
-                                          status:
-                                              newStatus,
-                                      }
-                                    : application
-                        ),
-                };
-            });
+                    return {
+                        ...current,
+                        applications:
+                            current.applications.map(
+                                (
+                                    application
+                                ) =>
+                                    application.id ===
+                                    applicationId
+                                        ? {
+                                              ...application,
+                                              status: newStatus,
+                                          }
+                                        : application
+                            ),
+                    };
+                }
+            );
 
             await fetchApplications();
         } catch (error) {
@@ -1060,7 +1408,8 @@ const handleDeleteVacancy = async (id) => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
 
-        window.location.href = import.meta.env.BASE_URL;
+        window.location.href =
+            import.meta.env.BASE_URL;
     };
 
     // =========================================================
@@ -1072,10 +1421,780 @@ const handleDeleteVacancy = async (id) => {
             fetchVacancies(),
             fetchApplications(),
         ]);
+
+        if (
+            selectedVacancy &&
+            activeSection ===
+                "vacancy-candidates"
+        ) {
+            const refreshedVacancy =
+                vacancies.find(
+                    (vacancy) =>
+                        Number(vacancy.id) ===
+                        Number(
+                            selectedVacancy.id
+                        )
+                );
+
+            if (refreshedVacancy) {
+                openVacancyCandidates(
+                    refreshedVacancy
+                );
+            }
+        }
     };
 
     // =========================================================
-    // DASHBOARD
+    // SIDEBAR NAVIGATION HELPERS
+    // =========================================================
+
+    const goToJobPostings = () => {
+        setActiveSection(
+            "job-postings"
+        );
+        setActiveVacancyId(null);
+        setSelectedVacancy(null);
+        setSelectedCandidate(null);
+        setVacancyCandidateApplications(
+            []
+        );
+    };
+
+    const goToInbox = () => {
+        setActiveSection("inbox");
+        setActiveVacancyId(null);
+        setSelectedVacancy(null);
+        setSelectedCandidate(null);
+    };
+
+    const goToVacancies = () => {
+        setActiveSection("vacancies");
+        setActiveVacancyId(null);
+        setSelectedVacancy(null);
+        setSelectedCandidate(null);
+    };
+
+    const goToInterview = () => {
+        setActiveSection("interview");
+        setActiveVacancyId(null);
+        setSelectedVacancy(null);
+        setSelectedCandidate(null);
+
+         loadInterviewData();
+    };
+// =========================================================
+// INTERVIEW DATA
+// =========================================================
+
+const openInterviewProfile = (
+    application,
+    interviewNumber
+) => {
+    setSelectedInterviewProfileCandidate(application);
+
+    setSelectedInterviewProfileNumber(
+        interviewNumber
+    );
+
+    const currentStatus =
+        String(application.status || "").toLowerCase();
+
+    if (currentStatus === "rejected") {
+        setInterviewProfileStatus("rejected");
+    } else if (currentStatus === "selected") {
+        setInterviewProfileStatus("selected");
+    } else {
+        setInterviewProfileStatus("interview");
+    }
+};
+
+const fetchInterviewOneCandidates = async () => {
+    try {
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(
+            `${API_URL}/interviews/interview-one/candidates`,
+            {
+                headers: {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch Interview 1 candidates.");
+        }
+
+        const data = await response.json();
+
+        setInterviewOneCandidates(
+            data.applications || []
+        );
+    } catch (error) {
+        console.error(
+            "INTERVIEW 1 CANDIDATES ERROR:",
+            error
+        );
+
+        setError(
+            "Unable to load Interview 1 candidates."
+        );
+    }
+};
+
+
+const fetchInterviewTwoCandidates = async () => {
+    try {
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(
+            `${API_URL}/interviews/interview-two/candidates`,
+            {
+                headers: {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch Interview 2 candidates.");
+        }
+
+        const data = await response.json();
+
+        setInterviewTwoCandidates(
+            data.applications || []
+        );
+    } catch (error) {
+        console.error(
+            "INTERVIEW 2 CANDIDATES ERROR:",
+            error
+        );
+
+        setError(
+            "Unable to load Interview 2 candidates."
+        );
+    }
+};
+
+
+const fetchInterviewers = async () => {
+    try {
+        const token = localStorage.getItem("token");
+
+        setInterviewersLoading(true);
+
+        const response = await fetch(
+            `${API_URL}/interviews/interviewers`,
+            {
+                headers: {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                "Failed to fetch interview participants."
+            );
+        }
+
+        const data = await response.json();
+
+        setInterviewers(
+            data.interviewers || []
+        );
+    } catch (error) {
+        console.error(
+            "INTERVIEWERS ERROR:",
+            error
+        );
+
+        setError(
+            "Unable to load interview participants."
+        );
+    } finally {
+        setInterviewersLoading(false);
+    }
+};
+const fetchInterviewerAvailability = async (
+    date,
+    interviewNumber
+) => {
+    if (!date) {
+        if (interviewNumber === 1) {
+            setInterviewOneAvailability({});
+        } else {
+            setInterviewTwoAvailability({});
+        }
+
+        return;
+    }
+
+    try {
+        const token =
+            localStorage.getItem("token");
+
+        setAvailabilityLoading(true);
+
+        const participants =
+            interviewers.filter((interviewer) => {
+                if (interviewNumber === 1) {
+                    return (
+                        interviewer.position ===
+                            "Tech Lead" ||
+                        interviewer.position ===
+                            "Senior Software Engineer"
+                    );
+                }
+
+                return (
+                    interviewer.position ===
+                        "HR Manager" ||
+                    interviewer.position ===
+                        "Hiring Manager"
+                );
+            });
+
+        const results =
+            await Promise.all(
+                participants.map(
+                    async (interviewer) => {
+                        try {
+                            const response =
+                                await fetch(
+                                    `${API_URL}/interviews/interviewer-availability?user_id=${interviewer.id}&date=${date}`,
+                                    {
+                                        headers: {
+                                            Accept:
+                                                "application/json",
+
+                                            Authorization:
+                                                `Bearer ${token}`,
+                                        },
+                                    }
+                                );
+
+                            const data =
+                                await response.json();
+
+                            return {
+                                user_id:
+                                    interviewer.id,
+
+                                name:
+                                    interviewer.name,
+
+                                email:
+                                    interviewer.email,
+
+                                position:
+                                    interviewer.position,
+
+                                connected:
+                                    data.connected ===
+                                    true,
+
+                                available:
+                                    data.available ===
+                                    true,
+
+                                suggested_time:
+                                    data.suggested_time ||
+                                    null,
+                            };
+                        } catch (error) {
+                            console.error(
+                                "AVAILABILITY ERROR:",
+                                interviewer.name,
+                                error
+                            );
+
+                            return {
+                                user_id:
+                                    interviewer.id,
+
+                                name:
+                                    interviewer.name,
+
+                                email:
+                                    interviewer.email,
+
+                                position:
+                                    interviewer.position,
+
+                                connected: false,
+                                available: false,
+                                suggested_time: null,
+                            };
+                        }
+                    }
+                )
+            );
+
+        const availabilityMap = {};
+
+        results.forEach((result) => {
+            availabilityMap[result.user_id] =
+                result;
+        });
+
+        if (interviewNumber === 1) {
+            setInterviewOneAvailability(
+                availabilityMap
+            );
+        } else {
+            setInterviewTwoAvailability(
+                availabilityMap
+            );
+        }
+    } catch (error) {
+        console.error(
+            "INTERVIEW AVAILABILITY ERROR:",
+            error
+        );
+
+        setInterviewMessage(
+            "Unable to check staff calendar availability."
+        );
+    } finally {
+        setAvailabilityLoading(false);
+    }
+};
+
+
+useEffect(() => {
+    if (interviewOneDate) {
+        fetchInterviewerAvailability(
+            interviewOneDate,
+            1
+        );
+    } else {
+        setInterviewOneAvailability({});
+    }
+}, [interviewOneDate, interviewers]);
+
+useEffect(() => {
+    if (interviewTwoDate) {
+        fetchInterviewerAvailability(
+            interviewTwoDate,
+            2
+        );
+    } else {
+        setInterviewTwoAvailability({});
+    }
+}, [interviewTwoDate, interviewers]);
+
+const getInterviewersByPosition = (
+    position
+) => {
+    return interviewers.filter(
+        (interviewer) =>
+            interviewer.position === position
+    );
+};
+
+const isStaffAvailable = (
+    interviewer,
+    interviewNumber
+) => {
+    const availability =
+        interviewNumber === 1
+            ? interviewOneAvailability
+            : interviewTwoAvailability;
+
+    return (
+        availability[interviewer.id]
+            ?.available === true
+    );
+};
+
+const getAvailabilityInfo = (
+    interviewer,
+    interviewNumber
+) => {
+    const availability =
+        interviewNumber === 1
+            ? interviewOneAvailability
+            : interviewTwoAvailability;
+
+    return (
+        availability[interviewer.id] ||
+        null
+    );
+};
+
+const getInterviewerPosition = (
+    interviewer
+) => {
+    return (
+        interviewer?.position ||
+        interviewer?.role?.name ||
+        "Staff"
+    );
+};
+
+const handleInterviewerProfile = (
+    interviewer
+) => {
+    setSelectedInterviewerProfile(
+        interviewer
+    );
+};
+
+const handleScheduleInterview = async (
+    interviewNumber,
+    applicationOverride = null
+) => {
+    try {
+        const application =
+            applicationOverride ||
+            (interviewNumber === 1
+                ? selectedInterviewOneCandidate
+                : selectedInterviewTwoCandidate);
+
+        if (!application) {
+            alert("Please select a candidate.");
+            return;
+        }
+
+        const date =
+            interviewNumber === 1
+                ? interviewOneDate
+                : interviewTwoDate;
+
+        if (!date) {
+            alert("Please select an interview date.");
+            return;
+        }
+
+        if (interviewNumber === 1) {
+            if (!selectedTechLead) {
+                alert("Please select a Tech Lead.");
+                return;
+            }
+
+            if (!selectedSeniorEngineer) {
+                alert(
+                    "Please select a Senior Software Engineer."
+                );
+                return;
+            }
+
+            if (
+                selectedTechLead.id ===
+                selectedSeniorEngineer.id
+            ) {
+                alert(
+                    "Tech Lead and Senior Software Engineer must be different people."
+                );
+                return;
+            }
+
+            if (!isStaffAvailable(selectedTechLead)) {
+                alert(
+                    "The selected Tech Lead is no longer available."
+                );
+                return;
+            }
+
+            if (
+                !isStaffAvailable(
+                    selectedSeniorEngineer
+                )
+            ) {
+                alert(
+                    "The selected Senior Software Engineer is no longer available."
+                );
+                return;
+            }
+        }
+
+        if (interviewNumber === 2) {
+            if (!selectedHRManager) {
+                alert("Please select the HR Manager.");
+                return;
+            }
+
+            if (!selectedHiringManager) {
+                alert("Please select the Hiring Manager.");
+                return;
+            }
+
+            if (!isStaffAvailable(selectedHRManager)) {
+                alert(
+                    "The HR Manager is not available on this date."
+                );
+                return;
+            }
+
+            if (
+                !isStaffAvailable(
+                    selectedHiringManager
+                )
+            ) {
+                alert(
+                    "The Hiring Manager is not available on this date."
+                );
+                return;
+            }
+        }
+
+        setSchedulingInterview(true);
+
+        const token =
+            localStorage.getItem("token");
+
+        const body = {
+            application_id: application.id,
+
+            interview_number:
+                interviewNumber,
+
+            scheduled_date: date,
+
+            scheduled_time:
+                interviewNumber === 1
+                    ? getAvailabilityInfo(
+                          selectedTechLead
+                      )?.suggested_time ||
+                      "09:00"
+                    : getAvailabilityInfo(
+                          selectedHRManager
+                      )?.suggested_time ||
+                      "09:00",
+        };
+
+        if (interviewNumber === 1) {
+            body.tech_lead_id =
+                Number(selectedTechLead.id);
+
+            body.senior_engineer_id =
+                Number(
+                    selectedSeniorEngineer.id
+                );
+        }
+
+        if (interviewNumber === 2) {
+            body.hr_manager_id =
+                Number(selectedHRManager.id);
+
+            body.hiring_manager_id =
+                Number(
+                    selectedHiringManager.id
+                );
+        }
+
+        const response = await fetch(
+            `${API_URL}/interviews`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json",
+
+                    Accept:
+                        "application/json",
+
+                    Authorization:
+                        `Bearer ${token}`,
+                },
+
+                body: JSON.stringify(body),
+            }
+        );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            console.error(
+                "SCHEDULE INTERVIEW ERROR:",
+                data
+            );
+
+            throw new Error(
+                data.message ||
+                    "Unable to schedule interview."
+            );
+        }
+
+        alert(
+            `Interview ${interviewNumber} scheduled successfully.`
+        );
+
+        if (interviewNumber === 1) {
+            setSelectedInterviewOneCandidate(null);
+
+            setInterviewOneDate("");
+
+            setSelectedTechLead(null);
+
+            setSelectedSeniorEngineer(null);
+        } else {
+            setSelectedInterviewTwoCandidate(null);
+
+            setInterviewTwoDate("");
+
+            setSelectedHRManager(null);
+
+            setSelectedHiringManager(null);
+        }
+
+        setInterviewerAvailability({});
+
+        setInterviewMessage("");
+
+        await loadInterviewData();
+
+        setSelectedInterviewProfileCandidate(null);
+    } catch (error) {
+        console.error(
+            "SCHEDULE INTERVIEW ERROR:",
+            error
+        );
+
+        alert(
+            error.message ||
+                "Unable to schedule interview."
+        );
+    } finally {
+        setSchedulingInterview(false);
+    }
+};
+
+const handleMoveToInterviewTwo = async (
+    applicationId
+) => {
+    try {
+        const token =
+            localStorage.getItem("token");
+
+        const response = await fetch(
+            `${API_URL}/interviews/move-to-interview-two`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json",
+
+                    Accept:
+                        "application/json",
+
+                    Authorization:
+                        `Bearer ${token}`,
+                },
+
+                body: JSON.stringify({
+                    application_id:
+                        applicationId,
+                }),
+            }
+        );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                    "Unable to move candidate."
+            );
+        }
+
+        const movedCandidate =
+            interviewOneCandidates.find(
+                (application) =>
+                    application.id ===
+                    applicationId
+            );
+
+        setInterviewMessage(
+            "✓ Candidate has been moved to Interview 2."
+        );
+
+        setInterviewOneCandidates(
+            (current) =>
+                current.map(
+                    (application) =>
+                        application.id ===
+                        applicationId
+                            ? {
+                                  ...application,
+                                  moved_to_interview_two:
+                                      true,
+                              }
+                            : application
+                )
+        );
+
+        if (movedCandidate) {
+            setInterviewTwoCandidates(
+                (current) => {
+                    const exists =
+                        current.some(
+                            (application) =>
+                                application.id ===
+                                applicationId
+                        );
+
+                    if (exists) {
+                        return current;
+                    }
+
+                    return [
+                        ...current,
+                        {
+                            ...movedCandidate,
+                            moved_to_interview_two:
+                                true,
+                        },
+                    ];
+                }
+            );
+        }
+    } catch (error) {
+        console.error(
+            "MOVE TO INTERVIEW 2 ERROR:",
+            error
+        );
+
+        setInterviewMessage(
+            error.message ||
+                "Unable to move candidate."
+        );
+    }
+};
+
+
+const loadInterviewData = async () => {
+    try {
+        setInterviewLoading(true);
+        setError("");
+
+        await Promise.all([
+            fetchInterviewOneCandidates(),
+            fetchInterviewTwoCandidates(),
+            fetchInterviewers(),
+
+        ]);
+    } catch (error) {
+        console.error(
+            "INTERVIEW DATA ERROR:",
+            error
+        );
+    } finally {
+        setInterviewLoading(false);
+    }
+};
+
+    // =========================================================
+    // RENDER
     // =========================================================
 
     return (
@@ -1091,9 +2210,7 @@ const handleDeleteVacancy = async (id) => {
             ================================================= */}
 
             <aside className="sidebar">
-
                 <div className="company">
-
                     <div className="company-logo"></div>
 
                     <span>
@@ -1103,116 +2220,250 @@ const handleDeleteVacancy = async (id) => {
                     <span className="dropdown">
                         ⌄
                     </span>
-
                 </div>
 
                 <div className="sidebar-menu">
+                    {/* HOME */}
 
                     <div className="menu-title">
-                        Home
+                        HOME
                     </div>
 
-                    <div className="menu-item">
-                        <span>▣</span>
-                        Inbox
-                    </div>
+                    {/* JOB POSTINGS */}
 
-                    <div className="menu-item">
+                    <button
+                        type="button"
+                        className={`menu-item ${
+                            activeSection ===
+                            "job-postings"
+                                ? "active"
+                                : ""
+                        }`}
+                        onClick={
+                            goToJobPostings
+                        }
+                    >
                         <span>▤</span>
-                        Feedbacks
-                    </div>
+                        Job Postings
+                    </button>
 
-                    <div className="menu-item active">
-                        <span>◇</span>
-                        Recruitment Details
-                    </div>
+                    {/* INBOX */}
 
-                    <div className="menu-item">
-                        <span>♧</span>
-                        Meetings
-                    </div>
-
-                    <div className="menu-item">
-                        <span>◉</span>
-                        My Tasks
-                    </div>
-
-                    <div className="menu-item">
-                        <span>⌁</span>
-                        All Tasks
-                    </div>
-
-                    <div className="menu-item">
-                        <span>•••</span>
-                        More
-                    </div>
+                    <button
+                        type="button"
+                        className={`menu-item ${
+                            activeSection ===
+                            "inbox"
+                                ? "active"
+                                : ""
+                        }`}
+                        onClick={
+                            goToInbox
+                        }
+                    >
+                        <span>✉</span>
+                        Inbox
+                    </button>
 
                     <hr />
 
+                    {/* RECRUITMENT */}
+
                     <div className="section-title">
-                        Recruitment
+                        RECRUITMENT
                     </div>
 
-                    <div className="menu-item">
-                        <span>＋</span>
-                        Candidates
-                    </div>
+                    {/* VACANCIES */}
 
-                    <div className="menu-item">
-                        <span>◇</span>
+                    <button
+                        type="button"
+                        className={`menu-item vacancy-parent-title ${
+                            activeSection ===
+                                "vacancies" ||
+                            activeSection ===
+                                "vacancy-candidates" ||
+                            activeSection ===
+                                "vacancy-details"
+                                ? "active"
+                                : ""
+                        }`}
+                        onClick={
+                            goToVacancies
+                        }
+                    >
+                        <span>⌄</span>
                         Vacancies
+                    </button>
+
+                    {/* DYNAMIC VACANCIES (Vacancies > Job Title > Candidates) */}
+
+                    <div className="sidebar-vacancies">
+                        {loading ? (
+                            <div className="sidebar-loading">
+                                Loading...
+                            </div>
+                        ) : vacancies.length ===
+                          0 ? (
+                            <div className="sidebar-empty">
+                                No vacancies
+                            </div>
+                        ) : (
+                            vacancies.map(
+                                (
+                                    vacancy
+                                ) => (
+                                    <div
+                                        className="sidebar-vacancy"
+                                        key={
+                                            vacancy.id
+                                        }
+                                    >
+                                        {/* VACANCY NAME */}
+
+                                        <button
+                                            type="button"
+                                            className={`sidebar-vacancy-name ${
+                                                Number(
+                                                    activeVacancyId
+                                                ) ===
+                                                    Number(
+                                                        vacancy.id
+                                                    ) &&
+                                                activeSection ===
+                                                    "vacancy-candidates"
+                                                    ? "selected"
+                                                    : ""
+                                            }`}
+                                            onClick={() =>
+                                                openVacancyCandidates(
+                                                    vacancy
+                                                )
+                                            }
+                                        >
+                                            <span className="vacancy-arrow">
+                                                ›
+                                            </span>
+
+                                            <span className="sidebar-vacancy-title">
+                                                {
+                                                    vacancy.title
+                                                }
+                                            </span>
+                                        </button>
+
+                                        {/* CANDIDATES CHILD */}
+
+                                        <button
+                                            type="button"
+                                            className={`sidebar-candidates ${
+                                                Number(
+                                                    activeVacancyId
+                                                ) ===
+                                                    Number(
+                                                        vacancy.id
+                                                    ) &&
+                                                activeSection ===
+                                                    "vacancy-candidates"
+                                                    ? "active"
+                                                    : ""
+                                            }`}
+                                            onClick={() =>
+                                                openVacancyCandidates(
+                                                    vacancy
+                                                )
+                                            }
+                                        >
+                                            <span className="candidate-tree">
+                                                └
+                                            </span>
+
+                                            <span>
+                                                Candidates
+                                            </span>
+
+                                            <span className="sidebar-count">
+                                                {getCandidateCount(
+                                                    vacancy.id
+                                                )}
+                                            </span>
+                                        </button>
+                                    </div>
+                                )
+                            )
+                        )}
                     </div>
 
-                    <div className="menu-item">
+                    {/* INTERVIEW */}
+
+                    <button
+                        type="button"
+                        className={`menu-item interview-menu-item ${
+                            activeSection ===
+                            "interview"
+                                ? "active"
+                                : ""
+                        }`}
+                        onClick={
+                            goToInterview
+                        }
+                    >
                         <span>✓</span>
-                        Interviews
-                    </div>
-
+                        Interview
+                    </button>
                 </div>
 
                 {/* PROFILE */}
 
                 <div className="profile-wrapper">
-    <button
-        className="profile-button"
-        onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-    >
-        <span>
-            ◉
-        </span>
+                    <button
+                        className="profile-button"
+                        onClick={() =>
+                            setProfileMenuOpen(
+                                !profileMenuOpen
+                            )
+                        }
+                    >
+                        <span>
+                            ◉
+                        </span>
 
-        <div>
-            <strong>
-                {user?.name || "HR Manager"}
-            </strong>
+                        <div>
+                            <strong>
+                                {user?.name ||
+                                    "HR Manager"}
+                            </strong>
 
-            <small>
-                {user?.role || "HR Manager"}
-            </small>
-        </div>
-    </button>
+                            <small>
+                                {user?.role ||
+                                    "HR Manager"}
+                            </small>
+                        </div>
+                    </button>
 
-    {profileMenuOpen && (
-        <div className="profile-menu">
-            <button
-                className="profile-menu-item"
-                onClick={() => {
-                    // Profile can be implemented later
-                    setProfileMenuOpen(false);
-                }}
-            >
-                Profile
-            </button>
+                    {profileMenuOpen && (
+                        <div className="profile-menu">
+                            <button
+                                className="profile-menu-item"
+                                onClick={() =>
+                                    setProfileMenuOpen(
+                                        false
+                                    )
+                                }
+                            >
+                                Profile
+                            </button>
 
-            <button
-                className="profile-menu-item logout-item"
-                onClick={handleLogout}
-            >
-                Log out
-            </button>
-        </div>
-    )}
-</div>
+                            <button
+                                className="profile-menu-item logout-item"
+                                onClick={
+                                    handleLogout
+                                }
+                            >
+                                Log out
+                            </button>
+                        </div>
+                    )}
+                </div>
             </aside>
 
             {/* =================================================
@@ -1220,34 +2471,15 @@ const handleDeleteVacancy = async (id) => {
             ================================================= */}
 
             <main className="dashboard-content">
-
-                {/* =================================================
-                    TOP BAR
-                ================================================= */}
+                {/* TOP BAR */}
 
                 <header className="topbar">
-
-                    <div className="search">
-
-                        <span>⌕</span>
-
-                        <input
-                            type="text"
-                            placeholder="Search vacancies..."
-                            value={searchTerm}
-                            onChange={(e) =>
-                                setSearchTerm(
-                                    e.target.value
-                                )
-                            }
-                        />
-
-                    </div>
-
                     <button
                         className="theme-toggle"
                         onClick={() =>
-                            setDarkMode(!darkMode)
+                            setDarkMode(
+                                !darkMode
+                            )
                         }
                         aria-label="Toggle theme"
                     >
@@ -1263,71 +2495,9 @@ const handleDeleteVacancy = async (id) => {
                                 : "Dark"}
                         </span>
                     </button>
-
-                    <button
-                        className="ai-button"
-                    >
-                        AI Chats ▣
-                    </button>
-
                 </header>
 
-                {/* =================================================
-                    PAGE HEADER
-                ================================================= */}
-
-                <div className="page-header">
-
-                    <div>
-
-                        <p className="page-eyebrow">
-                            RECRUITMENT MANAGEMENT
-                        </p>
-
-                        <h1>
-                            Current Opens
-                        </h1>
-
-                        <p className="page-description">
-                            Create and manage vacancies
-                            and keep track of candidates
-                            throughout the hiring process.
-                        </p>
-
-                    </div>
-
-                    <div className="header-actions">
-
-                        <button
-                            className="refresh-button"
-                            onClick={handleRefresh}
-                            title="Refresh dashboard"
-                        >
-                            ↻
-                        </button>
-
-                        <button
-                            className="create-vacancy-button"
-                            onClick={() =>
-                                setShowCreateVacancy(
-                                    true
-                                )
-                            }
-                        >
-                            <span>
-                                ＋
-                            </span>
-
-                            Create Vacancy
-                        </button>
-
-                    </div>
-
-                </div>
-
-                {/* =================================================
-                    ERROR
-                ================================================= */}
+                {/* ERROR */}
 
                 {error && (
                     <div className="dashboard-error">
@@ -1336,229 +2506,1897 @@ const handleDeleteVacancy = async (id) => {
                 )}
 
                 {/* =================================================
-                    SUMMARY
+                    JOB POSTINGS
+                    -> Candidates click here = PRIMARY SHORTLIST
+                       (>=60%, top 5, send to Hiring Manager)
                 ================================================= */}
 
-                <div className="vacancy-summary">
+                {activeSection ===
+                    "job-postings" && (
+                    <>
+                        <div className="page-header">
+                            <div>
+                                <p className="page-eyebrow">
+                                    RECRUITMENT
+                                    MANAGEMENT
+                                </p>
 
-                    <div>
-                        <strong>
-                            {openVacancies}
-                        </strong>
+                                <h1>
+                                    Job Postings
+                                </h1>
 
-                        <span>
-                            Open vacancies
-                        </span>
-                    </div>
+                                <p className="page-description">
+                                    Create and manage
+                                    vacancies and
+                                    keep track of
+                                    candidates
+                                    throughout the
+                                    hiring process.
+                                </p>
+                            </div>
 
-                    <div>
-                        <strong>
-                            {totalCandidates}
-                        </strong>
+                            <div className="header-actions">
+                                <button
+                                    className="refresh-button"
+                                    onClick={
+                                        handleRefresh
+                                    }
+                                    title="Refresh dashboard"
+                                >
+                                    ↻
+                                </button>
 
-                        <span>
-                            Total candidates
-                        </span>
-                    </div>
+                                <button
+                                    className="create-vacancy-button"
+                                    onClick={() =>
+                                        setShowCreateVacancy(
+                                            true
+                                        )
+                                    }
+                                >
+                                    <span>
+                                        ＋
+                                    </span>
 
-                    <div>
-                        <strong>
-                            {shortlistedCandidates}
-                        </strong>
+                                    Create Vacancy
+                                </button>
+                            </div>
+                        </div>
 
-                        <span>
-                            Shortlisted
-                        </span>
-                    </div>
+                        {/* SUMMARY */}
 
-                </div>
+                        <div className="vacancy-summary">
+                            <div>
+                                <strong>
+                                    {
+                                        openVacancies
+                                    }
+                                </strong>
+
+                                <span>
+                                    Open vacancies
+                                </span>
+                            </div>
+
+                            <div>
+                                <strong>
+                                    {
+                                        totalCandidates
+                                    }
+                                </strong>
+
+                                <span>
+                                    Total candidates
+                                </span>
+                            </div>
+
+                            <div>
+                                <strong>
+                                    {
+                                        shortlistedCandidates
+                                    }
+                                </strong>
+
+                                <span>
+                                    Shortlisted
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* VACANCY CARDS */}
+
+                        {loading ? (
+                            <div className="loading-message">
+                                Loading
+                                vacancies...
+                            </div>
+                        ) : filteredVacancies.length ===
+                          0 ? (
+                            <div className="empty-vacancy-card">
+                                {searchTerm ? (
+                                    <>
+                                        <h2>
+                                            No vacancies
+                                            found
+                                        </h2>
+
+                                        <p>
+                                            Try searching
+                                            for a
+                                            different
+                                            position or
+                                            department.
+                                        </p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <h2>
+                                            No vacancies
+                                            yet
+                                        </h2>
+
+                                        <p>
+                                            Create your
+                                            first
+                                            vacancy to
+                                            start
+                                            recruiting
+                                            candidates.
+                                        </p>
+                                    </>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="job-grid">
+                                {filteredVacancies.map(
+                                    (
+                                        vacancy
+                                    ) => (
+                                        <div
+                                            className="job-card"
+                                            key={
+                                                vacancy.id
+                                            }
+                                        >
+                                            {/* CLICKABLE VACANCY AREA -> PRIMARY SHORTLIST */}
+
+                                            <div
+                                                className="job-card-inner"
+                                                onClick={() =>
+                                                    handleViewPrimaryShortlist(
+                                                        vacancy.id
+                                                    )
+                                                }
+                                                style={{
+                                                    cursor:
+                                                        "pointer",
+                                                }}
+                                            >
+                                                <div className="job-date">
+                                                    {(
+                                                        vacancy.status ||
+                                                        "open"
+                                                    ).toUpperCase()}
+                                                </div>
+
+                                                <div className="job-status"></div>
+
+                                                <p className="company-name">
+                                                    Altrium
+                                                </p>
+
+                                                <h2>
+                                                    {
+                                                        vacancy.title
+                                                    }
+                                                </h2>
+
+                                                <div className="job-tags">
+                                                    <span>
+                                                        {
+                                                            vacancy.employment_type ||
+                                                            "Full time"
+                                                        }
+                                                    </span>
+
+                                                    <span>
+                                                        {
+                                                            vacancy.department ||
+                                                            "Human Resources"
+                                                        }
+                                                    </span>
+
+                                                    <span>
+                                                        {vacancy.minimum_experience
+                                                            ? `${vacancy.minimum_experience}+ years`
+                                                            : "No experience"}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* CARD FOOTER */}
+
+                                            <div className="job-footer">
+                                                <div className="candidate-info">
+                                                    <strong>
+                                                        CANDIDATES
+                                                    </strong>
+
+                                                    <span className="candidate-count">
+                                                        {
+                                                            vacancy.candidates_count
+                                                        }
+                                                    </span>
+                                                </div>
+
+                                                <div className="job-actions">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleViewPrimaryShortlist(
+                                                                vacancy.id
+                                                            )
+                                                        }
+                                                    >
+                                                        Candidates
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleViewDetails(
+                                                                vacancy.id
+                                                            )
+                                                        }
+                                                    >
+                                                        Details
+                                                        →
+                                                    </button>
+
+                                                    {String(
+                                                        vacancy.status ||
+                                                            "open"
+                                                    ).toLowerCase() ===
+                                                        "open" && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleCloseApplications(
+                                                                    vacancy.id
+                                                                )
+                                                            }
+                                                        >
+                                                            Close
+                                                            Applications
+                                                        </button>
+                                                    )}
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleDeleteVacancy(
+                                                                vacancy.id
+                                                            )
+                                                        }
+                                                    >
+                                                        Delete
+                                                        Vacancy
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                )}
+                            </div>
+                        )}
+                    </>
+                )}
 
                 {/* =================================================
                     VACANCIES
+                    -> Candidates click here = FULL applicant list
+                       in simple columns (name / score / profile).
+                       No Close Applications / Delete Vacancy here.
                 ================================================= */}
 
-                {loading ? (
-
-                    <div className="loading-message">
-                        Loading vacancies...
-                    </div>
-
-                ) : filteredVacancies.length === 0 ? (
-
-                    <div className="empty-vacancy-card">
-
-                        {searchTerm ? (
-                            <>
-                                <h2>
-                                    No vacancies found
-                                </h2>
-
-                                <p>
-                                    Try searching for a
-                                    different position or
-                                    department.
+                {activeSection ===
+                    "vacancies" && (
+                    <section className="dashboard-section">
+                        <div className="page-header">
+                            <div>
+                                <p className="page-eyebrow">
+                                    RECRUITMENT
                                 </p>
-                            </>
-                        ) : (
-                            <>
+
+                                <h1>
+                                    Vacancies
+                                </h1>
+
+                                <p className="page-description">
+                                    Select a vacancy
+                                    to view its
+                                    recruitment
+                                    candidates.
+                                </p>
+                            </div>
+                        </div>
+
+                        {loading ? (
+                            <div className="loading-message">
+                                Loading
+                                vacancies...
+                            </div>
+                        ) : filteredVacancies.length ===
+                          0 ? (
+                            <div className="empty-vacancy-card">
                                 <h2>
                                     No vacancies yet
                                 </h2>
 
                                 <p>
-                                    Create your first vacancy
-                                    to start recruiting
-                                    candidates.
+                                    Create a vacancy
+                                    from Job
+                                    Postings.
                                 </p>
-                            </>
-                        )}
+                            </div>
+                        ) : (
+                            <div className="job-grid">
+                                {filteredVacancies.map(
+                                    (
+                                        vacancy
+                                    ) => (
+                                        <div
+                                            className="job-card"
+                                            key={
+                                                vacancy.id
+                                            }
+                                        >
+                                            <div
+                                                className="job-card-inner"
+                                                onClick={() =>
+                                                    openVacancyCandidates(
+                                                        vacancy
+                                                    )
+                                                }
+                                                style={{
+                                                    cursor:
+                                                        "pointer",
+                                                }}
+                                            >
+                                                <div className="job-date">
+                                                    {(
+                                                        vacancy.status ||
+                                                        "open"
+                                                    ).toUpperCase()}
+                                                </div>
 
+                                                <div className="job-status"></div>
+
+                                                <p className="company-name">
+                                                    Altrium
+                                                </p>
+
+                                                <h2>
+                                                    {
+                                                        vacancy.title
+                                                    }
+                                                </h2>
+
+                                                <div className="job-tags">
+                                                    <span>
+                                                        {
+                                                            vacancy.employment_type ||
+                                                            "Full time"
+                                                        }
+                                                    </span>
+
+                                                    <span>
+                                                        {
+                                                            vacancy.department ||
+                                                            "Human Resources"
+                                                        }
+                                                    </span>
+
+                                                    <span>
+                                                        {vacancy.minimum_experience
+                                                            ? `${vacancy.minimum_experience}+ years`
+                                                            : "No experience"}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="job-footer">
+                                                <div className="candidate-info">
+                                                    <strong>
+                                                        CANDIDATES
+                                                    </strong>
+
+                                                    <span className="candidate-count">
+                                                        {
+                                                            vacancy.candidates_count
+                                                        }
+                                                    </span>
+                                                </div>
+
+                                                <div className="job-actions">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            openVacancyCandidates(
+                                                                vacancy
+                                                            )
+                                                        }
+                                                    >
+                                                        Candidates
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleViewDetails(
+                                                                vacancy.id
+                                                            )
+                                                        }
+                                                    >
+                                                        Details
+                                                        →
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                )}
+                            </div>
+                        )}
+                    </section>
+                )}
+
+                {/* =================================================
+                    VACANCY CANDIDATES PAGE (Vacancies flow)
+                    Order: Hiring Manager Shortlist -> Shortlisted
+                    -> All Candidates. Simple columns only.
+                ================================================= */}
+
+                {activeSection ===
+                    "vacancy-candidates" &&
+                    selectedVacancy && (
+                        <section className="dashboard-section">
+                            <div className="page-header">
+                                <div>
+                                    <p className="page-eyebrow">
+                                        RECRUITMENT
+                                    </p>
+
+                                    <h1>
+                                        Candidates
+                                    </h1>
+
+                                    <p className="page-description">
+                                        Candidates for{" "}
+                                        <strong>
+                                            {
+                                                selectedVacancy.title
+                                            }
+                                        </strong>
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    className="refresh-button"
+                                    onClick={() =>
+                                        openVacancyCandidates(
+                                            selectedVacancy
+                                        )
+                                    }
+                                >
+                                    ↻
+                                </button>
+                            </div>
+
+                            {candidateLoading ||
+                            applicationsLoading ? (
+                                <div className="loading-message">
+                                    Loading
+                                    candidates...
+                                </div>
+                            ) : (
+                                <>
+                                    {/* =================================================
+                                        HIRING MANAGER SHORTLIST
+                                        Candidates the Hiring Manager has
+                                        further shortlisted after receiving
+                                        the primary top-5.
+                                    ================================================= */}
+
+                                    <div className="candidate-section-heading">
+                                        <div>
+                                            <p className="page-eyebrow">
+                                                HIRING MANAGER
+                                            </p>
+
+                                            <h2>
+                                                Hiring Manager Shortlist
+                                            </h2>
+                                        </div>
+                                    </div>
+
+                                    {vacancyCandidateApplications.filter(
+    (application) =>
+        application.shortlisted_by_hiring_manager === true ||
+        application.shortlisted_by_hiring_manager === 1
+).length === 0 ? (
+                                        <div className="empty-vacancy-card">
+                                            <h2>
+                                                No candidates yet
+                                            </h2>
+
+                                            <p>
+                                                Candidates further
+                                                shortlisted by the
+                                                Hiring Manager will
+                                                appear here.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="candidate-list">
+                                            {vacancyCandidateApplications
+    .filter(
+        (application) =>
+            application.shortlisted_by_hiring_manager === true ||
+            application.shortlisted_by_hiring_manager === 1
+    )
+                                                .map((application, index) =>
+                                                    renderCandidateColumn(
+                                                        application,
+                                                        index
+                                                    )
+                                                )}
+                                        </div>
+                                    )}
+
+                                    {/* =================================================
+                                        SHORTLISTED (by HR)
+                                    ================================================= */}
+
+                                    <div className="candidate-section-heading">
+                                        <div>
+                                            <p className="page-eyebrow">
+                                                PRIMARY SHORTLISTED CANDIDATES
+                                            </p>
+
+                            
+                                        </div>
+                                    </div>
+
+                                    {vacancyCandidateApplications.filter(
+                                        (
+                                            application
+                                        ) =>
+                                            application.status ===
+                                            "shortlisted"
+                                    ).length ===
+                                    0 ? (
+                                        <div className="empty-vacancy-card">
+                                            <h2>
+                                                No
+                                                shortlisted
+                                                candidates
+                                            </h2>
+
+                                            <p>
+                                                Candidates
+                                                marked as
+                                                shortlisted
+                                                will appear
+                                                here.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="candidate-list">
+                                            {vacancyCandidateApplications
+                                                .filter(
+                                                    (
+                                                        application
+                                                    ) =>
+                                                        application.status ===
+                                                        "shortlisted"
+                                                )
+                                                .map(
+                                                    (
+                                                        application,
+                                                        index
+                                                    ) =>
+                                                        renderCandidateColumn(
+                                                            application,
+                                                            index
+                                                        )
+                                                )}
+                                        </div>
+                                    )}
+
+                                    {/* =================================================
+                                        ALL CANDIDATES
+                                        (everyone not already shown above)
+                                    ================================================= */}
+
+                                    <div className="candidate-section-heading">
+                                        <div>
+                                            <p className="page-eyebrow">
+                                                APPLICATIONS
+                                            </p>
+
+                                            <h2>
+                                                All
+                                                Candidates
+                                            </h2>
+                                        </div>
+                                    </div>
+
+                                   {vacancyCandidateApplications.filter(
+    (application) =>
+        application.status !== "shortlisted" &&
+        application.shortlisted_by_hiring_manager !== true &&
+        application.shortlisted_by_hiring_manager !== 1
+).length === 0 ? (
+                                        <div className="empty-vacancy-card">
+                                            <h2>
+                                                No other
+                                                candidates
+                                            </h2>
+
+                                            <p>
+                                                All current
+                                                candidates
+                                                are already
+                                                shown above.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="candidate-list">
+    {vacancyCandidateApplications
+        .filter(
+            (application) =>
+                application.status !== "shortlisted" &&
+                application.shortlisted_by_hiring_manager !== true &&
+                application.shortlisted_by_hiring_manager !== 1
+        )
+        .map(
+                                                    (
+                                                        application,
+                                                        index
+                                                    ) =>
+                                                        renderCandidateColumn(
+                                                            application,
+                                                            index
+                                                        )
+                                                )}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </section>
+                    )}
+
+                {/* =================================================
+                    INBOX
+                ================================================= */}
+
+                {activeSection ===
+                    "inbox" && (
+                    <section className="dashboard-section">
+                        <div className="page-header">
+                            <div>
+                                <p className="page-eyebrow">
+                                    HOME
+                                </p>
+
+                                <h1>
+                                    Inbox
+                                </h1>
+
+                                <p className="page-description">
+                                    Recruitment
+                                    messages and
+                                    notifications
+                                    will appear
+                                    here.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="empty-vacancy-card">
+                            <h2>
+                                Inbox
+                            </h2>
+
+                            <p>
+                                No new messages.
+                            </p>
+                        </div>
+                    </section>
+                )}
+{/* =================================================
+    INTERVIEW
+================================================= */}
+
+{activeSection === "interview" && (
+    <section className="dashboard-section interview-page">
+
+        <div className="interview-page-header">
+            <div>
+                <p className="page-eyebrow">
+                    RECRUITMENT
+                </p>
+
+                <h2>
+                    Interviews
+                </h2>
+
+                <p>
+                    Manage candidate interviews and interviewer availability.
+                </p>
+            </div>
+        </div>
+
+
+        {/* =====================================================
+            INTERVIEW 1
+        ====================================================== */}
+
+        <div className="interview-block">
+
+            <div className="interview-block-header">
+                <div>
+                    <h3>
+                        Interview 1
+                    </h3>
+
+                    <p>
+                        Candidates shortlisted by the Hiring Manager
+                    </p>
+                </div>
+            </div>
+
+
+            {/* Candidate table */}
+
+            <div className="interview-table">
+
+                <div className="interview-table-row interview-table-head">
+                    <div>
+                        Candidate
+                    </div>
+
+                    <div>
+                        Score
+                    </div>
+
+                    <div>
+                        shedule interview 1
+                    </div>
+
+                    <div>
+                        move to interview 2
+                    </div>
+                </div>
+
+
+                {interviewOneCandidates.length === 0 ? (
+
+                    <div className="interview-empty-row">
+                        No candidates have been shortlisted by the Hiring Manager.
                     </div>
 
                 ) : (
 
-                    <div className="job-grid">
+                    interviewOneCandidates.map(
+                        (application) => {
 
-                        {filteredVacancies.map(
-                            (vacancy) => (
+                            const candidate =
+                                application.candidate?.user;
 
+                            const candidateName =
+                                candidate?.name ||
+                                candidate?.full_name ||
+                                "Unknown Candidate";
+
+                            const alreadyMoved =
+                                application.moved_to_interview_two;
+
+                            return (
                                 <div
-                                    className="job-card"
-                                    key={vacancy.id}
+                                    className="interview-table-row"
+                                    key={
+                                        application.id
+                                    }
                                 >
 
-                                    <div
-                                        className="job-card-inner"
-                                    >
-
-                                        <div className="job-date">
-                                            {(
-                                                vacancy.status ||
-                                                "open"
-                                            ).toUpperCase()}
-                                        </div>
-
-                                        <div
-                                            className="job-status"
-                                        ></div>
-
-                                        <p className="company-name">
-                                            Altrium
-                                        </p>
-
-                                        <h2>
-                                            {vacancy.title}
-                                        </h2>
-
-                                        <div className="job-tags">
-
-                                            <span>
-                                                {
-                                                    vacancy.employment_type ||
-                                                    "Full time"
-                                                }
-                                            </span>
-
-                                            <span>
-                                                {
-                                                    vacancy.department ||
-                                                    "Human Resources"
-                                                }
-                                            </span>
-
-                                            <span>
-                                                {vacancy.minimum_experience
-                                                    ? `${vacancy.minimum_experience}+ years`
-                                                    : "No experience"}
-                                            </span>
-
-                                        </div>
-
+                                    <div className="candidate-name-cell">
+                                        {candidateName}
                                     </div>
 
-                                    <div className="job-footer">
 
-                                        <div className="candidate-info">
+                                    <div>
+                                        {Number(
+                                            application.match_score ||
+                                                0
+                                        ).toFixed(1)}
+                                        %
+                                    </div>
 
-                                            <strong>
-                                                CANDIDATES
-                                            </strong>
 
-                                            <span className="candidate-count">
-                                                {
-                                                    vacancy.candidates_count
-                                                }
-                                            </span>
+                                   <button
+    type="button"
+    className="interview-link-button"
+    onClick={() => {
+        setSelectedInterviewProfileCandidate(
+            application
+        );
 
-                                        </div>
+        setSelectedInterviewProfileNumber(1);
 
-                                        <div className="job-actions">
+        setInterviewProfileStatus("interview");
+    }}
+>
+    Profile
+</button>
+
+
+                                    <div>
+
+                                        
+
+
+                                        {alreadyMoved ? (
+
+    <span className="interview-moved-status">
+        ✓ Moved to Interview 2
+    </span>
+
+) : (
 
     <button
-        onClick={() =>
-            handleViewCandidates(
-                vacancy.id
-            )
-        }
-    >
-        Candidates
-    </button>
+        type="button"
+        className="interview-select-button"
+        onClick={async () => {
+            const confirmed = window.confirm(
+                `Are you sure you want to move ${
+                    application.candidate?.user?.name ||
+                    "this candidate"
+                } to Interview 2?`
+            );
 
-    <button
-        onClick={() =>
-            handleViewDetails(
-                vacancy.id
-            )
-        }
-    >
-        Details →
-    </button>
-
-    {String(vacancy.status || "open").toLowerCase() === "open" && (
-        <button
-            onClick={() =>
-                handleCloseApplications(
-                    vacancy.id
-                )
+            if (!confirmed) {
+                return;
             }
-        >
-            Close Applications
-        </button>
-    )}
 
-    <button
-        onClick={() =>
-            handleDeleteVacancy(
-                vacancy.id
-            )
-        }
+            await handleMoveToInterviewTwo(
+                application.id
+            );
+        }}
     >
-        Delete Vacancy
+        Move to Interview 2
     </button>
 
-</div>
+)}
+
+                                        
 
                                     </div>
 
                                 </div>
+                            );
+                        }
+                    )
 
-                            )
+                )}
+
+            </div>
+
+
+            {interviewMessage && (
+                <div className="interview-confirmation">
+                    {interviewMessage}
+                </div>
+            )}
+
+
+            {/* =================================================
+                INTERVIEW 1 SCHEDULING
+            ================================================= */}
+
+            <div className="interview-scheduling">
+
+                <h4>
+                    Interview 1 Scheduling
+                </h4>
+
+
+                
+
+
+               <div className="interview-date-field">
+    <label>
+        Interview Date
+    </label>
+
+    <input
+        type="date"
+        value={interviewOneDate}
+        min={new Date()
+            .toISOString()
+            .split("T")[0]}
+        onChange={(e) => {
+            const date = e.target.value;
+
+            setInterviewOneDate(date);
+
+            setSelectedTechLead(null);
+            setSelectedSeniorEngineer(null);
+
+            setInterviewMessage("");
+
+           if (date) {
+    fetchInterviewerAvailability(
+        date,
+        1
+    );
+} else {
+    setInterviewOneAvailability({});
+}
+        }}
+    />
+</div>
+
+
+                {interviewOneDate && (
+                    <div className="interviewer-availability">
+
+                        <div className="availability-title">
+                            Individual Staff Calendar Availability
+                        </div>
+
+
+                        {availabilityLoading ? (
+
+                            <div className="interviewer-unavailable">
+                                Checking Google Calendar availability...
+                            </div>
+
+                        ) : (
+
+                            <>
+
+
+                                {/* =================================================
+                                    TECH LEADS
+                                ================================================= */}
+
+                                <div className="interviewer-group">
+
+                                    <div className="interviewer-role">
+                                        Tech Lead
+                                    </div>
+
+
+                                    {getInterviewersByPosition(
+                                        "Tech Lead"
+                                    ).length === 0 ? (
+
+                                        <div className="interviewer-unavailable">
+                                            No Tech Lead accounts have been created.
+                                        </div>
+
+                                    ) : (
+
+                                        getInterviewersByPosition(
+                                            "Tech Lead"
+                                        ).map(
+                                            (interviewer) => {
+
+                                                const availability =
+                                                    getAvailabilityInfo(
+                                                        interviewer,
+                                                        1
+                                                    );
+
+                                                const available =
+                                                    isStaffAvailable(
+                                                        interviewer,
+                                                        1
+                                                    );
+
+                                                return (
+                                                    <div
+                                                        className={`interviewer-row ${
+                                                            selectedTechLead?.id ===
+                                                            interviewer.id
+                                                                ? "selected"
+                                                                : ""
+                                                        }`}
+                                                        key={
+                                                            interviewer.id
+                                                        }
+                                                    >
+
+                                                        <div className="interviewer-info">
+
+                                                            <strong>
+                                                                {
+                                                                    interviewer.name
+                                                                }
+                                                            </strong>
+
+                                                            <span>
+                                                                {
+                                                                    interviewer.email
+                                                                }
+                                                            </span>
+
+                                                        </div>
+
+
+                                                        <div className="interviewer-actions">
+
+                                                            {available ? (
+
+                                                                <span className="available-label">
+                                                                    ✓ Available
+                                                                </span>
+
+                                                            ) : (
+
+                                                                <span className="interviewer-unavailable">
+                                                                    {availability?.connected === false
+                                                                        ? "Calendar not connected"
+                                                                        : "Unavailable"}
+                                                                </span>
+
+                                                            )}
+
+
+                                                            <button
+                                                                type="button"
+                                                                className="interview-profile-button"
+                                                                onClick={() =>
+                                                                    handleInterviewerProfile(
+                                                                        interviewer
+                                                                    )
+                                                                }
+                                                            >
+                                                                View Profile
+                                                            </button>
+
+
+                                                            {available && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="interview-choose-button"
+                                                                    onClick={() =>
+                                                                        setSelectedTechLead(
+                                                                            interviewer
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    {selectedTechLead?.id ===
+                                                                    interviewer.id
+                                                                        ? "Selected"
+                                                                        : "Choose"}
+                                                                </button>
+                                                            )}
+
+                                                        </div>
+
+                                                    </div>
+                                                );
+                                            }
+                                        )
+
+                                    )}
+
+                                </div>
+
+
+                                {/* =================================================
+                                    SENIOR SOFTWARE ENGINEERS
+                                ================================================= */}
+
+                                <div className="interviewer-group">
+
+                                    <div className="interviewer-role">
+                                        Senior Software Engineer
+                                    </div>
+
+
+                                    {getInterviewersByPosition(
+                                        "Senior Software Engineer"
+                                    ).length === 0 ? (
+
+                                        <div className="interviewer-unavailable">
+                                            No Senior Software Engineer accounts have been created.
+                                        </div>
+
+                                    ) : (
+
+                                        getInterviewersByPosition(
+                                            "Senior Software Engineer"
+                                        ).map(
+                                            (interviewer) => {
+
+                                                const availability =
+                                                    getAvailabilityInfo(
+                                                        interviewer,
+                                                        1
+                                                    );
+
+                                                const available =
+                                                    isStaffAvailable(
+                                                        interviewer,
+                                                        1
+                                                    );
+
+                                                return (
+                                                    <div
+                                                        className={`interviewer-row ${
+                                                            selectedSeniorEngineer?.id ===
+                                                            interviewer.id
+                                                                ? "selected"
+                                                                : ""
+                                                        }`}
+                                                        key={
+                                                            interviewer.id
+                                                        }
+                                                    >
+
+                                                        <div className="interviewer-info">
+
+                                                            <strong>
+                                                                {
+                                                                    interviewer.name
+                                                                }
+                                                            </strong>
+
+                                                            <span>
+                                                                {
+                                                                    interviewer.email
+                                                                }
+                                                            </span>
+
+                                                        </div>
+
+
+                                                        <div className="interviewer-actions">
+
+                                                            {available ? (
+
+                                                                <span className="available-label">
+                                                                    ✓ Available
+                                                                </span>
+
+                                                            ) : (
+
+                                                                <span className="interviewer-unavailable">
+                                                                    {availability?.connected === false
+                                                                        ? "Calendar not connected"
+                                                                        : "Unavailable"}
+                                                                </span>
+
+                                                            )}
+
+
+                                                            <button
+                                                                type="button"
+                                                                className="interview-profile-button"
+                                                                onClick={() =>
+                                                                    handleInterviewerProfile(
+                                                                        interviewer
+                                                                    )
+                                                                }
+                                                            >
+                                                                View Profile
+                                                            </button>
+
+
+                                                            {available && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="interview-choose-button"
+                                                                    onClick={() =>
+                                                                        setSelectedSeniorEngineer(
+                                                                            interviewer
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    {selectedSeniorEngineer?.id ===
+                                                                    interviewer.id
+                                                                        ? "Selected"
+                                                                        : "Choose"}
+                                                                </button>
+                                                            )}
+
+                                                        </div>
+
+                                                    </div>
+                                                );
+                                            }
+                                        )
+
+                                    )}
+
+                                </div>
+
+
+
+                            </>
+
                         )}
 
                     </div>
+                )}
+
+            </div>
+
+        </div>
+
+
+        {/* =====================================================
+            INTERVIEW 2
+        ====================================================== */}
+
+        <div className="interview-block">
+
+            <div className="interview-block-header">
+
+                <div>
+                    <h3>
+                        Interview 2
+                    </h3>
+
+                    <p>
+                        Candidates selected from Interview 1
+                    </p>
+                </div>
+
+            </div>
+
+
+            {/* Candidate table */}
+
+            <div className="interview-table">
+
+                <div className="interview-table-row interview-table-head interview-two-head">
+
+                    <div>
+                        Candidate
+                    </div>
+
+                    <div>
+                        Score
+                    </div>
+
+                    <div>
+                        Profile
+                    </div>
+
+                    <div>
+                        Select
+                    </div>
+
+                </div>
+
+
+                {interviewTwoCandidates.length === 0 ? (
+
+                    <div className="interview-empty-row">
+                        No candidates have been moved to Interview 2.
+                    </div>
+
+                ) : (
+
+                    interviewTwoCandidates.map(
+                        (application) => {
+
+                            const candidate =
+                                application.candidate?.user;
+
+                            const candidateName =
+                                candidate?.name ||
+                                candidate?.full_name ||
+                                "Unknown Candidate";
+
+                            const selected =
+                                selectedInterviewTwoCandidate?.id ===
+                                application.id;
+
+                            return (
+                                <div
+                                    className={`interview-table-row interview-two-row ${
+                                        selected
+                                            ? "selected"
+                                            : ""
+                                    }`}
+                                    key={
+                                        application.id
+                                    }
+                                >
+
+                                    <div className="candidate-name-cell">
+                                        {candidateName}
+                                    </div>
+
+
+                                    <div>
+                                        {Number(
+                                            application.match_score ||
+                                                0
+                                        ).toFixed(1)}
+                                        %
+                                    </div>
+
+
+                                    <button
+    type="button"
+    className="interview-link-button"
+    onClick={() => {
+        setSelectedInterviewProfileCandidate(
+            application
+        );
+
+        setSelectedInterviewProfileNumber(2);
+
+        setInterviewProfileStatus("interview");
+    }}
+>
+    Profile
+</button>
+
+
+                                    <div>
+                                        <button
+                                            type="button"
+                                            className="interview-select-button"
+                                            onClick={() =>
+                                                setSelectedInterviewTwoCandidate(
+                                                    application
+                                                )
+                                            }
+                                        >
+                                            {selected
+                                                ? "Selected"
+                                                : "Select"}
+                                        </button>
+                                    </div>
+
+                                </div>
+                            );
+                        }
+                    )
 
                 )}
+
+            </div>
+
+
+            {/* =================================================
+                INTERVIEW 2 SCHEDULING
+            ================================================= */}
+
+            {selectedInterviewTwoCandidate && (
+                <div className="interview-scheduling">
+
+                    <h4>
+                        Interview 2 Scheduling
+                    </h4>
+
+
+                    <div className="selected-interview-candidate">
+
+                        <strong>
+                            Selected candidate:
+                        </strong>
+
+                        <span>
+                            {
+                                selectedInterviewTwoCandidate
+                                    .candidate
+                                    ?.user
+                                    ?.name ||
+                                "Candidate"
+                            }
+                        </span>
+
+                    </div>
+
+
+                    <div className="interview-date-field">
+
+                        <label>
+                            Interview Date
+                        </label>
+
+                        <input
+                            type="date"
+                            value={
+                                interviewTwoDate
+                            }
+                            min={
+                                new Date()
+                                    .toISOString()
+                                    .split("T")[0]
+                            }
+                            onChange={(e) => {
+
+                                const date =
+                                    e.target.value;
+
+                                setInterviewTwoDate(
+                                    date
+                                );
+
+                                setSelectedHRManager(
+                                    null
+                                );
+
+                                setSelectedHiringManager(
+                                    null
+                                );
+
+                                setInterviewMessage("");
+
+                               if (date) {
+    fetchInterviewerAvailability(
+        date,
+        2
+    );
+} else {
+    setInterviewTwoAvailability({});
+}
+                            }}
+                        />
+
+                    </div>
+
+
+                    {interviewTwoDate && (
+                        <div className="interviewer-availability">
+
+                            <div className="availability-title">
+                                Individual Staff Calendar Availability
+                            </div>
+
+
+                            {availabilityLoading ? (
+
+                                <div className="interviewer-unavailable">
+                                    Checking Google Calendar availability...
+                                </div>
+
+                            ) : (
+
+                                <>
+
+
+                                    {/* =================================================
+                                        HR MANAGER
+                                    ================================================= */}
+
+                                    <div className="interviewer-group">
+
+                                        <div className="interviewer-role">
+                                            HR Manager
+                                        </div>
+
+
+                                        {getInterviewersByPosition(
+                                            "HR Manager"
+                                        ).map(
+                                            (interviewer) => {
+
+                                                const availability =
+                                                    getAvailabilityInfo(
+                                                        interviewer,
+                                                        2
+                                                    );
+
+                                                const available =
+                                                    isStaffAvailable(
+                                                        interviewer,
+                                                        2
+                                                    );
+
+                                                return (
+                                                    <div
+                                                        className={`interviewer-row ${
+                                                            selectedHRManager?.id ===
+                                                            interviewer.id
+                                                                ? "selected"
+                                                                : ""
+                                                        }`}
+                                                        key={
+                                                            interviewer.id
+                                                        }
+                                                    >
+
+                                                        <div className="interviewer-info">
+
+                                                            <strong>
+                                                                {
+                                                                    interviewer.name
+                                                                }
+                                                            </strong>
+
+                                                            <span>
+                                                                {
+                                                                    interviewer.email
+                                                                }
+                                                            </span>
+
+                                                        </div>
+
+
+                                                        <div className="interviewer-actions">
+
+                                                            {available ? (
+
+                                                                <span className="available-label">
+                                                                    ✓ Available
+                                                                </span>
+
+                                                            ) : (
+
+                                                                <span className="interviewer-unavailable">
+                                                                    {availability?.connected === false
+                                                                        ? "Calendar not connected"
+                                                                        : "Unavailable"}
+                                                                </span>
+
+                                                            )}
+
+
+                                                            <button
+                                                                type="button"
+                                                                className="interview-profile-button"
+                                                                onClick={() =>
+                                                                    handleInterviewerProfile(
+                                                                        interviewer
+                                                                    )
+                                                                }
+                                                            >
+                                                                View Profile
+                                                            </button>
+
+
+                                                            {available && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="interview-choose-button"
+                                                                    onClick={() =>
+                                                                        setSelectedHRManager(
+                                                                            interviewer
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    {selectedHRManager?.id ===
+                                                                    interviewer.id
+                                                                        ? "Selected"
+                                                                        : "Choose"}
+                                                                </button>
+                                                            )}
+
+                                                        </div>
+
+                                                    </div>
+                                                );
+                                            }
+                                        )}
+
+                                    </div>
+
+
+                                    {/* =================================================
+                                        HIRING MANAGER
+                                    ================================================= */}
+
+                                    <div className="interviewer-group">
+
+                                        <div className="interviewer-role">
+                                            Hiring Manager
+                                        </div>
+
+
+                                        {getInterviewersByPosition(
+                                            "Hiring Manager"
+                                        ).map(
+                                            (interviewer) => {
+
+                                                const availability =
+                                                    getAvailabilityInfo(
+                                                        interviewer,
+                                                        2
+                                                    );
+
+                                                const available =
+                                                    isStaffAvailable(
+                                                        interviewer,
+                                                        2
+                                                    );
+
+                                                return (
+                                                    <div
+                                                        className={`interviewer-row ${
+                                                            selectedHiringManager?.id ===
+                                                            interviewer.id
+                                                                ? "selected"
+                                                                : ""
+                                                        }`}
+                                                        key={
+                                                            interviewer.id
+                                                        }
+                                                    >
+
+                                                        <div className="interviewer-info">
+
+                                                            <strong>
+                                                                {
+                                                                    interviewer.name
+                                                                }
+                                                            </strong>
+
+                                                            <span>
+                                                                {
+                                                                    interviewer.email
+                                                                }
+                                                            </span>
+
+                                                        </div>
+
+
+                                                        <div className="interviewer-actions">
+
+                                                            {available ? (
+
+                                                                <span className="available-label">
+                                                                    ✓ Available
+                                                                </span>
+
+                                                            ) : (
+
+                                                                <span className="interviewer-unavailable">
+                                                                    {availability?.connected === false
+                                                                        ? "Calendar not connected"
+                                                                        : "Unavailable"}
+                                                                </span>
+
+                                                            )}
+
+
+                                                            <button
+                                                                type="button"
+                                                                className="interview-profile-button"
+                                                                onClick={() =>
+                                                                    handleInterviewerProfile(
+                                                                        interviewer
+                                                                    )
+                                                                }
+                                                            >
+                                                                View Profile
+                                                            </button>
+
+
+                                                            {available && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="interview-choose-button"
+                                                                    onClick={() =>
+                                                                        setSelectedHiringManager(
+                                                                            interviewer
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    {selectedHiringManager?.id ===
+                                                                    interviewer.id
+                                                                        ? "Selected"
+                                                                        : "Choose"}
+                                                                </button>
+                                                            )}
+
+                                                        </div>
+
+                                                    </div>
+                                                );
+                                            }
+                                        )}
+
+                                    </div>
+
+
+                                    {selectedHRManager &&
+    selectedHiringManager && (
+        <button
+            type="button"
+            className="interview-schedule-button"
+            disabled={schedulingInterview}
+            onClick={() =>
+                handleScheduleInterview(2)
+            }
+        >
+            {schedulingInterview
+                ? "Assigning..."
+                : "Assign & Schedule Interview 2"}
+        </button>
+    )}
+
+                                </>
+
+                            )}
+
+                        </div>
+                    )}
+
+                </div>
+            )}
+
+        </div>
+
+
+        {/* =====================================================
+            INTERVIEWER PROFILE
+        ====================================================== */}
+
+        {selectedInterviewerProfile && (
+            <div className="interviewer-profile-overlay">
+
+                <div className="interviewer-profile-modal">
+
+                    <button
+                        type="button"
+                        className="interviewer-profile-close"
+                        onClick={() =>
+                            setSelectedInterviewerProfile(
+                                null
+                            )
+                        }
+                    >
+                        ×
+                    </button>
+
+
+                    <div className="interviewer-profile-header">
+
+                        <div className="interviewer-avatar">
+                            {(
+                                selectedInterviewerProfile.name ||
+                                "S"
+                            )
+                                .charAt(0)
+                                .toUpperCase()}
+                        </div>
+
+
+                        <div>
+
+                            <h3>
+                                {
+                                    selectedInterviewerProfile.name
+                                }
+                            </h3>
+
+                            <p>
+                                {getInterviewerPosition(
+                                    selectedInterviewerProfile
+                                )}
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div className="interviewer-profile-details">
+
+                        <div className="profile-detail-row">
+
+                            <span>
+                                Email
+                            </span>
+
+                            <strong>
+                                {
+                                    selectedInterviewerProfile.email ||
+                                    "Not available"
+                                }
+                            </strong>
+
+                        </div>
+
+
+                        <div className="profile-detail-row">
+
+                            <span>
+                                Role
+                            </span>
+
+                            <strong>
+                                {
+                                    selectedInterviewerProfile.role?.name ||
+                                    "Staff"
+                                }
+                            </strong>
+
+                        </div>
+
+
+                        <div className="profile-detail-row">
+
+                            <span>
+                                Position
+                            </span>
+
+                            <strong>
+                                {getInterviewerPosition(
+                                    selectedInterviewerProfile
+                                )}
+                            </strong>
+
+                        </div>
+
+
+                        <div className="profile-detail-row">
+
+                            <span>
+                                Google Calendar
+                            </span>
+
+                            <strong>
+                                {
+                                    selectedInterviewerProfile.calendar_connected
+                                        ? "Connected"
+                                        : "Not connected"
+                                }
+                            </strong>
+
+                        </div>
+
+
+                        <div className="profile-detail-row">
+
+                            <span>
+                                Contact
+                            </span>
+
+                            {selectedInterviewerProfile.email ? (
+                                <a
+                                    href={`mailto:${selectedInterviewerProfile.email}`}
+                                    className="interview-link-button"
+                                >
+                                    Email Staff Member
+                                </a>
+                            ) : (
+                                <strong>
+                                    Not available
+                                </strong>
+                            )}
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+        )}
+
+    </section>
+)}
 
                 {/* =================================================
                     CREATE VACANCY MODAL
                 ================================================= */}
 
                 {showCreateVacancy && (
-
                     <div className="modal-overlay">
-
                         <div className="vacancy-modal">
-
                             <button
                                 className="modal-close"
                                 onClick={() =>
@@ -1579,9 +4417,10 @@ const handleDeleteVacancy = async (id) => {
                             </h2>
 
                             <p className="modal-description">
-                                Add a new position that
-                                your hiring team can
-                                recruit candidates for.
+                                Add a new position
+                                that your hiring
+                                team can recruit
+                                candidates for.
                             </p>
 
                             <form
@@ -1589,11 +4428,10 @@ const handleDeleteVacancy = async (id) => {
                                     handleCreateVacancy
                                 }
                             >
-
                                 <div className="form-group">
-
                                     <label>
-                                        Position title
+                                        Position
+                                        title
                                     </label>
 
                                     <input
@@ -1602,20 +4440,24 @@ const handleDeleteVacancy = async (id) => {
                                         value={
                                             newVacancy.title
                                         }
-                                        onChange={(e) =>
-                                            setNewVacancy({
-                                                ...newVacancy,
-                                                title:
-                                                    e.target.value,
-                                            })
+                                        onChange={(
+                                            e
+                                        ) =>
+                                            setNewVacancy(
+                                                {
+                                                    ...newVacancy,
+                                                    title:
+                                                        e
+                                                            .target
+                                                            .value,
+                                                }
+                                            )
                                         }
                                         required
                                     />
-
                                 </div>
 
                                 <div className="form-group">
-
                                     <label>
                                         Department
                                     </label>
@@ -1626,22 +4468,27 @@ const handleDeleteVacancy = async (id) => {
                                         value={
                                             newVacancy.department
                                         }
-                                        onChange={(e) =>
-                                            setNewVacancy({
-                                                ...newVacancy,
-                                                department:
-                                                    e.target.value,
-                                            })
+                                        onChange={(
+                                            e
+                                        ) =>
+                                            setNewVacancy(
+                                                {
+                                                    ...newVacancy,
+                                                    department:
+                                                        e
+                                                            .target
+                                                            .value,
+                                                }
+                                            )
                                         }
                                         required
                                     />
-
                                 </div>
 
                                 <div className="form-group">
-
                                     <label>
-                                        Job description
+                                        Job
+                                        description
                                     </label>
 
                                     <textarea
@@ -1649,20 +4496,24 @@ const handleDeleteVacancy = async (id) => {
                                         value={
                                             newVacancy.description
                                         }
-                                        onChange={(e) =>
-                                            setNewVacancy({
-                                                ...newVacancy,
-                                                description:
-                                                    e.target.value,
-                                            })
+                                        onChange={(
+                                            e
+                                        ) =>
+                                            setNewVacancy(
+                                                {
+                                                    ...newVacancy,
+                                                    description:
+                                                        e
+                                                            .target
+                                                            .value,
+                                                }
+                                            )
                                         }
                                         required
                                     />
-
                                 </div>
 
                                 <div className="form-group">
-
                                     <label>
                                         Responsibilities
                                     </label>
@@ -1672,58 +4523,73 @@ const handleDeleteVacancy = async (id) => {
                                         value={
                                             newVacancy.responsibilities
                                         }
-                                        onChange={(e) =>
-                                            setNewVacancy({
-                                                ...newVacancy,
-                                                responsibilities:
-                                                    e.target.value,
-                                            })
+                                        onChange={(
+                                            e
+                                        ) =>
+                                            setNewVacancy(
+                                                {
+                                                    ...newVacancy,
+                                                    responsibilities:
+                                                        e
+                                                            .target
+                                                            .value,
+                                                }
+                                            )
                                         }
                                     />
-
                                 </div>
 
                                 <div className="form-group">
-
                                     <label>
-                                        Minimum experience
+                                        Minimum
+                                        experience
                                     </label>
 
                                     <input
                                         type="number"
                                         min="0"
-                                        placeholder="e.g. 2"
                                         value={
                                             newVacancy.minimum_experience
                                         }
-                                        onChange={(e) =>
-                                            setNewVacancy({
-                                                ...newVacancy,
-                                                minimum_experience:
-                                                    e.target.value,
-                                            })
+                                        onChange={(
+                                            e
+                                        ) =>
+                                            setNewVacancy(
+                                                {
+                                                    ...newVacancy,
+                                                    minimum_experience:
+                                                        e
+                                                            .target
+                                                            .value,
+                                                }
+                                            )
                                         }
                                         required
                                     />
-
                                 </div>
 
                                 <div className="form-group">
-
                                     <label>
-                                        Employment type
+                                        Employment
+                                        type
                                     </label>
 
                                     <select
                                         value={
                                             newVacancy.employment_type
                                         }
-                                        onChange={(e) =>
-                                            setNewVacancy({
-                                                ...newVacancy,
-                                                employment_type:
-                                                    e.target.value,
-                                            })
+                                        onChange={(
+                                            e
+                                        ) =>
+                                            setNewVacancy(
+                                                {
+                                                    ...newVacancy,
+                                                    employment_type:
+                                                        e
+                                                            .target
+                                                            .value,
+                                                }
+                                            )
                                         }
                                     >
                                         <option>
@@ -1742,7 +4608,6 @@ const handleDeleteVacancy = async (id) => {
                                             Contract
                                         </option>
                                     </select>
-
                                 </div>
 
                                 <button
@@ -1751,1028 +4616,1415 @@ const handleDeleteVacancy = async (id) => {
                                 >
                                     Create Vacancy
                                 </button>
-
                             </form>
-
                         </div>
-
                     </div>
-
                 )}
 
                 {/* =================================================
-                    CANDIDATE LIST MODAL
+                    CANDIDATE DETAIL MODAL
                 ================================================= */}
 
-                {selectedCandidate && (
+                {selectedCandidate &&
+                    !selectedCandidate.primaryShortlist && (
+                        <CandidateDetailModal
+                            selectedCandidate={
+                                selectedCandidate
+                            }
+                            setSelectedCandidate={
+                                setSelectedCandidate
+                            }
+                            showExtractedText={
+                                showExtractedText
+                            }
+                            setShowExtractedText={
+                                setShowExtractedText
+                            }
+                            getCvStats={
+                                getCvStats
+                            }
+                            getMatchScore={
+                                getMatchScore
+                            }
+                            getMatchCategory={
+                                getMatchCategory
+                            }
+                            handleStatusChange={
+                                handleStatusChange
+                            }
+                            statusUpdating={
+                                statusUpdating
+                            }
+                            handleViewCv={
+                                handleViewCv
+                            }
+                        />
+                    )}
 
+                    {/* =================================================
+    INTERVIEW CANDIDATE PROFILE
+================================================= */}
+
+{selectedInterviewProfileCandidate && (
+    <div className="interview-profile-overlay">
+
+        <div className="interview-profile-modal">
+
+            <div className="interview-profile-header">
+
+                <div>
+                    <h2>
+                        {
+                            selectedInterviewProfileCandidate
+                                .candidate?.user?.name ||
+                            selectedInterviewProfileCandidate
+                                .candidate?.user?.full_name ||
+                            "Unknown Candidate"
+                        }
+                    </h2>
+
+                    <p>
+                        Interview{" "}
+                        {selectedInterviewProfileNumber}
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    className="interview-profile-close"
+                    onClick={() =>
+                        setSelectedInterviewProfileCandidate(
+                            null
+                        )
+                    }
+                >
+                    ×
+                </button>
+
+            </div>
+
+
+            <div className="interview-profile-details">
+
+                {/* NAME */}
+
+                <div className="interview-profile-field">
+
+                    <label>
+                        Name
+                    </label>
+
+                    <div className="interview-profile-value">
+                        {
+                            selectedInterviewProfileCandidate
+                                .candidate?.user?.name ||
+                            selectedInterviewProfileCandidate
+                                .candidate?.user?.full_name ||
+                            "Unknown Candidate"
+                        }
+                    </div>
+
+                </div>
+
+
+                {/* STATUS */}
+
+                <div className="interview-profile-field">
+
+                    <label>
+                        Status
+                    </label>
+
+                    <select
+                        value={
+                            interviewProfileStatus
+                        }
+                        onChange={(e) =>
+                            setInterviewProfileStatus(
+                                e.target.value
+                            )
+                        }
+                    >
+                        <option value="rejected">
+                            Rejected
+                        </option>
+
+                        <option value="interview">
+                            Interview
+                        </option>
+
+                        <option value="selected">
+                            Selected
+                        </option>
+                    </select>
+
+                </div>
+
+
+                {/* INTERVIEW DATE */}
+
+                <div className="interview-profile-field">
+
+                    <label>
+                        Interview Date
+                    </label>
+
+                    <input
+                        type="date"
+                        value={
+                            selectedInterviewProfileNumber === 1
+                                ? interviewOneDate
+                                : interviewTwoDate
+                        }
+                        min={
+                            new Date()
+                                .toISOString()
+                                .split("T")[0]
+                        }
+                        onChange={(e) => {
+
+                            const date =
+                                e.target.value;
+
+                            if (
+                                selectedInterviewProfileNumber ===
+                                1
+                            ) {
+                                setInterviewOneDate(
+                                    date
+                                );
+                            } else {
+                                setInterviewTwoDate(
+                                    date
+                                );
+                            }
+
+                        }}
+                    />
+
+                </div>
+
+
+                {/* EMAIL */}
+
+                <div className="interview-profile-field">
+
+                    <label>
+                        Email
+                    </label>
+
+                    <button
+                        type="button"
+                        className="interview-email-button"
+                        onClick={() => {
+
+                            const email =
+                                selectedInterviewProfileCandidate
+                                    .candidate?.user?.email ||
+                                selectedInterviewProfileCandidate
+                                    .candidate?.email;
+
+                            if (email) {
+                                window.location.href =
+                                    `mailto:${email}`;
+                            }
+
+                        }}
+                    >
+                        {
+                            selectedInterviewProfileCandidate
+                                .candidate?.user?.email ||
+                            selectedInterviewProfileCandidate
+                                .candidate?.email ||
+                            "No email available"
+                        }
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            {/* ACTIONS */}
+
+            <div className="interview-profile-actions">
+
+                <button
+                    type="button"
+                    className="interview-profile-action-button"
+                    disabled={
+                        !selectedInterviewProfileCandidate.cv
+                    }
+                    onClick={() => {
+
+                        if (
+                            selectedInterviewProfileCandidate.cv
+                        ) {
+                            handleViewCv(
+                                selectedInterviewProfileCandidate.cv
+                            );
+                        }
+
+                    }}
+                >
+                    View CV
+                </button>
+
+
+                <button
+                    type="button"
+                    className="interview-profile-action-button"
+                    onClick={() => {
+                        alert(
+                            "Feedback will open here."
+                        );
+                    }}
+                >
+                    Feedback
+                </button>
+
+            </div>
+
+
+            {/* CONFIRM SCHEDULE */}
+
+            <div className="interview-profile-footer">
+<button
+    type="button"
+    className="interview-schedule-button"
+    disabled={schedulingInterview}
+    onClick={() =>
+        handleScheduleInterview(
+            selectedInterviewProfileNumber,
+            selectedInterviewProfileCandidate
+        )
+    }
+>
+    {schedulingInterview
+        ? "Saving..."
+        : "Save"}
+</button>
+            </div>
+
+        </div>
+
+    </div>
+)}
+
+                {/* =================================================
+                    PRIMARY SHORTLIST MODAL (Job Postings flow)
+                ================================================= */}
+
+                {selectedCandidate?.primaryShortlist && (
                     <div className="modal-overlay">
-
                         <div className="candidate-modal">
-
                             <button
                                 className="modal-close"
                                 onClick={() => {
-                                    setSelectedCandidate(null);
-                                    setShowExtractedText(false);
+                                    setSelectedCandidate(
+                                        null
+                                    );
+
+                                    setExpandedPrimaryCandidateId(
+                                        null
+                                    );
+
+                                    setPrimaryExtractedTextId(
+                                        null
+                                    );
                                 }}
                             >
                                 ×
                             </button>
 
                             <p className="modal-eyebrow">
-                                APPLICATIONS
+                                PRIMARY SHORTLIST
                             </p>
 
                             <h2>
-                                Candidates
+                                Top 5 Candidates
                             </h2>
 
                             <p className="modal-description">
-                                Candidates who have applied for this
-                                vacancy.
+                                Candidates with a
+                                match score of 60%
+                                or higher.
                             </p>
 
-                            {selectedCandidate.applications.length > 0 && (
-    <div className="candidate-handoff">
+                            <div className="candidate-handoff">
+                                <button
+    className="send-hiring-manager-button"
+    onClick={handleSendToHiringManager}
+    disabled={sendingToHiringManager}
+>
+    {sendingToHiringManager
+        ? "Sending..."
+        : "Send Top 5 to Hiring Manager"}
+</button>
 
- <button
-        type="button"
-        className="send-to-hiring-manager-button"
-        onClick={handleSendToHiringManager}
-        disabled={sendingToHiringManager}
-    >
-        {sendingToHiringManager
-            ? "Sending..."
-            : "Send Top 5 to Hiring Manager →"}
-    </button>
-
-    <p>
-        Sends the highest-scoring eligible candidates
-        (60%+) for secondary manual shortlisting.
-    </p>
-
-</div>
-                            )}
+                                <p>
+                                    Sends the highest
+                                    scoring eligible
+                                    candidates for
+                                    secondary manual
+                                    shortlisting.
+                                </p>
+                            </div>
 
                             {candidateLoading ? (
-
                                 <div className="loading-message">
-                                    Loading candidates...
+                                    Loading
+                                    candidates...
                                 </div>
-
-                            ) : selectedCandidate.applications.length === 0 ? (
-
+                            ) : selectedCandidate
+                                  .applications
+                                  .length === 0 ? (
                                 <div className="no-candidates">
-
                                     <h3>
-                                        No candidates yet
+                                        No eligible
+                                        candidates
                                     </h3>
 
                                     <p>
-                                        No applications have been
-                                        submitted for this vacancy.
+                                        No candidates
+                                        with a match
+                                        score of 60%
+                                        or higher
+                                        are currently
+                                        available.
                                     </p>
-
                                 </div>
-
                             ) : (
-
                                 <div className="candidate-list">
-
                                     {selectedCandidate.applications.map(
-                                        (application, index) => {
-
-                                            const candidate =
-                                                application.candidate;
-
-                                            const candidateUser =
-                                                candidate?.user;
-
-                                            const cv =
-                                                application.cv;
-
-                                            const cvStats =
-                                                getCvStats(cv);
-
-                                            return (
-
-                                                <div
-                                                    className={`candidate-card ${
-                                                        index === 0
-                                                            ? "top-candidate"
-                                                            : ""
-                                                    }`}
-                                                    key={application.id}
-                                                >
-
-                                                    {/* CANDIDATE HEADER */}
-
-                                                    <div className="candidate-card-header">
-
-                                                        {/* RANKING */}
-
-                                                        <div className="candidate-ranking">
-                                                            #{index + 1}
-                                                        </div>
-
-                                                        <div className="candidate-avatar">
-                                                            {(
-                                                                candidateUser?.name ||
-                                                                "C"
-                                                            )
-                                                                .charAt(0)
-                                                                .toUpperCase()}
-                                                        </div>
-
-                                                        <div className="candidate-main-info">
-
-                                                            <h3>
-                                                                {candidateUser?.name ||
-                                                                    "Candidate"}
-                                                            </h3>
-
-                                                            <p>
-                                                                {candidateUser?.email ||
-                                                                    "No email available"}
-                                                            </p>
-
-                                                        </div>
-
-                                                        {/* MATCH SCORE */}
-
-                                                        <div className="candidate-score-summary">
-
-                                                            <strong>
-                                                                {getMatchScore(
-                                                                    application
-                                                                ) !== null
-                                                                    ? `${getMatchScore(
-                                                                          application
-                                                                      ).toFixed(
-                                                                          1
-                                                                      )}%`
-                                                                    : "N/A"}
-                                                            </strong>
-
-                                                            <span>
-                                                                {getMatchCategory(
-                                                                    application
-                                                                )}
-                                                            </span>
-
-                                                        </div>
-
-                                                        <span
-                                                            className={`candidate-status status-${
-                                                                application.status ||
-                                                                "new"
-                                                            }`}
-                                                        >
-                                                            {(
-                                                                application.status ||
-                                                                "new"
-                                                            ).toUpperCase()}
-                                                        </span>
-
-                                                    </div>
-
-                                                    {/* CANDIDATE DETAILS */}
-
-                                                    <div className="candidate-details-grid">
-
-                                                        <div>
-                                                            <span>
-                                                                Phone
-                                                            </span>
-
-                                                            <strong>
-                                                                {candidate?.phone ||
-                                                                    "Not provided"}
-                                                            </strong>
-                                                        </div>
-
-                                                        <div>
-                                                            <span>
-                                                                Location
-                                                            </span>
-
-                                                            <strong>
-                                                                {candidate?.address ||
-                                                                    "Not provided"}
-                                                            </strong>
-                                                        </div>
-
-                                                    </div>
-
-                                                    {/* =================================================
-                                                        CV SECTION
-                                                    ================================================= */}
-
-                                                    {cv && (
-
-                                                        <div className="cv-section">
-
-                                                            <div className="cv-section-header">
-
-                                                                <div>
-
-                                                                    <span className="cv-section-label">
-                                                                        CV
-                                                                    </span>
-
-                                                                    <a
-                                                                        href={`${STORAGE_URL}/${cv.file_path}`}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="cv-file-link"
-                                                                    >
-                                                                        📄{" "}
-                                                                        {cv.file_name ||
-                                                                            "View CV"}
-                                                                    </a>
-
-                                                                </div>
-
-                                                                <span className="cv-processing-status">
-                                                                    {cv.processing_status ||
-                                                                        "pending"}
-                                                                </span>
-
-                                                            </div>
-
-                                                            {/* CV STATS */}
-
-                                                            <div className="cv-stats">
-
-                                                                <div className="cv-stat">
-
-                                                                    <span>
-                                                                        EXPERIENCE
-                                                                    </span>
-
-                                                                    <strong>
-                                                                        {
-                                                                            cvStats.experience
-                                                                        }
-                                                                    </strong>
-
-                                                                </div>
-
-                                                                <div className="cv-stat">
-
-                                                                    <span>
-                                                                        SKILLS
-                                                                    </span>
-
-                                                                    <strong>
-                                                                        {
-                                                                            cvStats.skills
-                                                                        }
-                                                                    </strong>
-
-                                                                </div>
-
-                                                                <div className="cv-stat">
-
-                                                                    <span>
-                                                                        EDUCATION
-                                                                    </span>
-
-                                                                    <strong>
-                                                                        {
-                                                                            cvStats.education
-                                                                        }
-                                                                    </strong>
-
-                                                                </div>
-
-                                                                <div className="cv-stat">
-
-                                                                    <span>
-                                                                        CERTIFICATIONS
-                                                                    </span>
-
-                                                                    <strong>
-                                                                        {
-                                                                            cvStats.certifications
-                                                                        }
-                                                                    </strong>
-
-                                                                </div>
-
-                                                                <div className="cv-stat">
-
-                                                                    <span>
-                                                                        LANGUAGES
-                                                                    </span>
-
-                                                                    <strong>
-                                                                        {
-                                                                            cvStats.languages
-                                                                        }
-                                                                    </strong>
-
-                                                                </div>
-
-                                                                <div className="cv-stat">
-
-                                                                    <span>
-                                                                        PROCESSING
-                                                                    </span>
-
-                                                                    <strong>
-                                                                        {
-                                                                            cv.processing_status ||
-                                                                            "Pending"
-                                                                        }
-                                                                    </strong>
-
-                                                                </div>
-
-                                                            </div>
-
-                                                            {/* EXTRACTED TEXT */}
-
-                                                            <button
-                                                                type="button"
-                                                                className="extracted-text-button"
-                                                                onClick={() =>
-                                                                    setShowExtractedText(
-                                                                        !showExtractedText
-                                                                    )
-                                                                }
-                                                            >
-                                                                {showExtractedText
-                                                                    ? "Hide extracted text"
-                                                                    : "View extracted text"}
-                                                            </button>
-
-                                                            {showExtractedText && (
-
-                                                                <div className="extracted-text">
-
-                                                                    {cv.extracted_text ||
-                                                                        "No extracted text available."}
-
-                                                                </div>
-
-                                                            )}
-
-                                                        </div>
-
-                                                    )}
-
-                                                    {/* =================================================
-                                                        MATCHING STATISTICS
-                                                    ================================================= */}
-
-                                                    {(() => {
-
-                                                        const matchScore =
-                                                            getMatchScore(
-                                                                application
-                                                            );
-
-                                                        const matchCategory =
-                                                            getMatchCategory(
-                                                                application
-                                                            );
-
-                                                        if (
-                                                            matchScore ===
-                                                            null
-                                                        ) {
-                                                            return (
-                                                                <div className="matching-section matching-not-evaluated">
-
-                                                                    <div className="matching-header">
-
-                                                                        <div>
-
-                                                                            <span className="matching-label">
-                                                                                CV MATCH
-                                                                            </span>
-
-                                                                            <h4>
-                                                                                Candidate Match
-                                                                            </h4>
-
-                                                                            <p>
-                                                                                This application has not been
-                                                                                evaluated yet.
-                                                                            </p>
-
-                                                                        </div>
-
-                                                                    </div>
-
-                                                                </div>
-                                                            );
-                                                        }
-
-                                                        const skillsScore =
-                                                            Number(
-                                                                application.skills_score
-                                                            ) || 0;
-
-                                                        const experienceScore =
-                                                            Number(
-                                                                application.experience_score
-                                                            ) || 0;
-
-                                                        const relevanceScore =
-                                                            Number(
-                                                                application.relevance_score
-                                                            ) || 0;
-
-                                                        const skillsPercentage =
-                                                            Math.min(
-                                                                100,
-                                                                Math.max(
-                                                                    0,
-                                                                    (skillsScore /
-                                                                        50) *
-                                                                        100
-                                                                )
-                                                            );
-
-                                                        const experiencePercentage =
-                                                            Math.min(
-                                                                100,
-                                                                Math.max(
-                                                                    0,
-                                                                    (experienceScore /
-                                                                        30) *
-                                                                        100
-                                                                )
-                                                            );
-
-                                                        const relevancePercentage =
-                                                            Math.min(
-                                                                100,
-                                                                Math.max(
-                                                                    0,
-                                                                    (relevanceScore /
-                                                                        20) *
-                                                                        100
-                                                                )
-                                                            );
-
-                                                        return (
-                                                            <div className="matching-section">
-
-                                                                {/* HEADER */}
-
-                                                                <div className="matching-header">
-
-                                                                    <div>
-
-                                                                        <span className="matching-label">
-                                                                            CV MATCH
-                                                                        </span>
-
-                                                                        <h4>
-                                                                            Candidate Match
-                                                                        </h4>
-
-                                                                        <p>
-                                                                            AI-assisted compatibility analysis
-                                                                            for this vacancy.
-                                                                        </p>
-
-                                                                    </div>
-
-                                                                    <div className="match-score-circle">
-
-                                                                        <strong>
-                                                                            {matchScore.toFixed(
-                                                                                1
-                                                                            )}
-                                                                            %
-                                                                        </strong>
-
-                                                                        <span>
-                                                                            Match
-                                                                        </span>
-
-                                                                    </div>
-
-                                                                </div>
-
-                                                                {/* CATEGORY */}
-
-                                                                <div className="match-category">
-
-                                                                    <span className="match-category-dot"></span>
-
-                                                                    {matchCategory}
-
-                                                                </div>
-
-                                                                {/* OVERALL SCORE */}
-
-                                                                <div className="match-overall-bar">
-
-                                                                    <div className="match-overall-header">
-
-                                                                        <span>
-                                                                            Overall match score
-                                                                        </span>
-
-                                                                        <strong>
-                                                                            {matchScore.toFixed(
-                                                                                1
-                                                                            )}{" "}
-                                                                            / 100
-                                                                        </strong>
-
-                                                                    </div>
-
-                                                                    <div className="match-bar-track">
-
-                                                                        <div
-                                                                            className="match-bar-fill overall"
-                                                                            style={{
-                                                                                width: `${matchScore}%`,
-                                                                            }}
-                                                                        ></div>
-
-                                                                    </div>
-
-                                                                </div>
-
-                                                                {/* SCORE BREAKDOWN */}
-
-                                                                <div className="match-breakdown">
-
-                                                                    {/* SKILLS */}
-
-                                                                    <div className="match-breakdown-card">
-
-                                                                        <div className="match-breakdown-header">
-
-                                                                            <div>
-
-                                                                                <span>
-                                                                                    Skills
-                                                                                </span>
-
-                                                                                <strong>
-                                                                                    {skillsScore.toFixed(
-                                                                                        1
-                                                                                    )}{" "}
-                                                                                    / 50
-                                                                                </strong>
-
-                                                                            </div>
-
-                                                                            <span className="match-breakdown-percentage">
-                                                                                {skillsPercentage.toFixed(
-                                                                                    0
-                                                                                )}
-                                                                                %
-                                                                            </span>
-
-                                                                        </div>
-
-                                                                        <div className="match-bar-track">
-
-                                                                            <div
-                                                                                className="match-bar-fill skills"
-                                                                                style={{
-                                                                                    width: `${skillsPercentage}%`,
-                                                                                }}
-                                                                            ></div>
-
-                                                                        </div>
-
-                                                                    </div>
-
-                                                                    {/* EXPERIENCE */}
-
-                                                                    <div className="match-breakdown-card">
-
-                                                                        <div className="match-breakdown-header">
-
-                                                                            <div>
-
-                                                                                <span>
-                                                                                    Experience
-                                                                                </span>
-
-                                                                                <strong>
-                                                                                    {experienceScore.toFixed(
-                                                                                        1
-                                                                                    )}{" "}
-                                                                                    / 30
-                                                                                </strong>
-
-                                                                            </div>
-
-                                                                            <span className="match-breakdown-percentage">
-                                                                                {experiencePercentage.toFixed(
-                                                                                    0
-                                                                                )}
-                                                                                %
-                                                                            </span>
-
-                                                                        </div>
-
-                                                                        <div className="match-bar-track">
-
-                                                                            <div
-                                                                                className="match-bar-fill experience"
-                                                                                style={{
-                                                                                    width: `${experiencePercentage}%`,
-                                                                                }}
-                                                                            ></div>
-
-                                                                        </div>
-
-                                                                    </div>
-
-                                                                    {/* RELEVANCE */}
-
-                                                                    <div className="match-breakdown-card">
-
-                                                                        <div className="match-breakdown-header">
-
-                                                                            <div>
-
-                                                                                <span>
-                                                                                    Relevance
-                                                                                </span>
-
-                                                                                <strong>
-                                                                                    {relevanceScore.toFixed(
-                                                                                        1
-                                                                                    )}{" "}
-                                                                                    / 20
-                                                                                </strong>
-
-                                                                            </div>
-
-                                                                            <span className="match-breakdown-percentage">
-                                                                                {relevancePercentage.toFixed(
-                                                                                    0
-                                                                                )}
-                                                                                %
-                                                                            </span>
-
-                                                                        </div>
-
-                                                                        <div className="match-bar-track">
-
-                                                                            <div
-                                                                                className="match-bar-fill relevance"
-                                                                                style={{
-                                                                                    width: `${relevancePercentage}%`,
-                                                                                }}
-                                                                            ></div>
-
-                                                                        </div>
-
-                                                                    </div>
-
-                                                                </div>
-
-                                                                {/* SUMMARY */}
-
-                                                                <div className="match-summary">
-
-                                                                    <div>
-
-                                                                        <span>
-                                                                            Category
-                                                                        </span>
-
-                                                                        <strong>
-                                                                            {matchCategory}
-                                                                        </strong>
-
-                                                                    </div>
-
-                                                                    <div>
-
-                                                                        <span>
-                                                                            Overall Score
-                                                                        </span>
-
-                                                                        <strong>
-                                                                            {matchScore.toFixed(
-                                                                                1
-                                                                            )}
-                                                                            %
-                                                                        </strong>
-
-                                                                    </div>
-
-                                                                    <div>
-
-                                                                        <span>
-                                                                            CV Status
-                                                                        </span>
-
-                                                                        <strong>
-                                                                            {application.cv?.processing_status ||
-                                                                                "Pending"}
-                                                                        </strong>
-
-                                                                    </div>
-
-                                                                </div>
-
-                                                                <p className="match-note">
-                                                                    Match score is calculated from skills,
-                                                                    experience and relevance against the
-                                                                    requirements of the vacancy.
-                                                                </p>
-
-                                                            </div>
-                                                        );
-                                                    })()}
-
-                                                    {/* =================================================
-                                                        APPLICATION FOOTER
-                                                    ================================================= */}
-
-                                                    <div className="candidate-card-footer">
-
-                                                        <div>
-
-                                                            <span>
-                                                                Application status
-                                                            </span>
-
-                                                            <select
-                                                                value={
-                                                                    application.status ||
-                                                                    "new"
-                                                                }
-                                                                disabled={
-                                                                    statusUpdating
-                                                                }
-                                                                onChange={(e) =>
-                                                                    handleStatusChange(
-                                                                        application.id,
-                                                                        e.target.value
-                                                                    )
-                                                                }
-                                                            >
-
-                                                                <option value="new">
-                                                                    New
-                                                                </option>
-
-                                                                <option value="screening">
-                                                                    Screening
-                                                                </option>
-
-                                                                <option value="shortlisted">
-                                                                    Shortlisted
-                                                                </option>
-
-                                                                <option value="interview">
-                                                                    Interview
-                                                                </option>
-
-                                                                <option value="selected">
-                                                                    Selected
-                                                                </option>
-
-                                                                <option value="rejected">
-                                                                    Rejected
-                                                                </option>
-
-                                                            </select>
-
-                                                        </div>
-
-                                                        <div className="application-date">
-
-                                                            <span>
-                                                                Applied
-                                                            </span>
-
-                                                            <strong>
-                                                                {application.applied_at
-                                                                    ? new Date(
-                                                                          application.applied_at
-                                                                      ).toLocaleDateString()
-                                                                    : "N/A"}
-                                                            </strong>
-
-                                                        </div>
-
-                                                    </div>
-
-                                                </div>
-
-                                            );
-                                        }
+                                        (
+                                            application,
+                                            index
+                                        ) =>
+                                            renderCandidateRow(
+                                                application,
+                                                index
+                                            )
                                     )}
-
                                 </div>
-
                             )}
-
                         </div>
-
                     </div>
-
                 )}
 
                 {/* =================================================
-                    VACANCY DETAILS
+                    VACANCY DETAILS MODAL
                 ================================================= */}
 
-                {selectedVacancy && (
+                {activeSection ===
+                    "vacancy-details" &&
+                    selectedVacancy && (
+                        <div className="modal-overlay">
+                            <div className="vacancy-details-modal">
+                                <button
+                                    className="modal-close"
+                                    onClick={() => {
+                                        setSelectedVacancy(
+                                            null
+                                        );
 
-                    <div className="modal-overlay">
+                                        setActiveSection(
+                                            "job-postings"
+                                        );
+                                    }}
+                                >
+                                    ×
+                                </button>
 
-                        <div className="vacancy-details-modal">
+                                <p className="modal-eyebrow">
+                                    VACANCY DETAILS
+                                </p>
 
-                            <button
-                                className="modal-close"
-                                onClick={() =>
-                                    setSelectedVacancy(
-                                        null
-                                    )
-                                }
-                            >
-                                ×
-                            </button>
+                                {detailsLoading ? (
+                                    <div className="loading-message">
+                                        Loading
+                                        vacancy
+                                        details...
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="details-header">
+                                            <div>
+                                                <h2>
+                                                    {
+                                                        selectedVacancy.title
+                                                    }
+                                                </h2>
 
-                            <p className="modal-eyebrow">
-                                VACANCY DETAILS
-                            </p>
+                                                <p className="details-department">
+                                                    {
+                                                        selectedVacancy.department
+                                                    }
+                                                </p>
+                                            </div>
 
-                            {detailsLoading ? (
-
-                                <div className="loading-message">
-                                    Loading vacancy details...
-                                </div>
-
-                            ) : (
-
-                                <>
-
-                                    <div className="details-header">
-
-                                        <div>
-
-                                            <h2>
+                                            <span className="details-status">
                                                 {
-                                                    selectedVacancy.title
+                                                    selectedVacancy.status ||
+                                                    "open"
                                                 }
-                                            </h2>
-
-                                            <p className="details-department">
-                                                {
-                                                    selectedVacancy.department
-                                                }
-                                            </p>
-
+                                            </span>
                                         </div>
 
-                                        <span className="details-status">
-                                            {
-                                                selectedVacancy.status ||
-                                                "open"
-                                            }
-                                        </span>
-
-                                    </div>
-
-                                    <div className="details-tags">
-
-                                        <span>
-                                            {
-                                                selectedVacancy.employment_type ||
-                                                "Not specified"
-                                            }
-                                        </span>
-
-                                        <span>
-                                            {
-                                                selectedVacancy.minimum_experience
-                                                    ? `${selectedVacancy.minimum_experience}+ years experience`
-                                                    : "No experience required"
-                                            }
-                                        </span>
-
-                                    </div>
-
-                                    <div className="details-section">
-
-                                        <h3>
-                                            Description
-                                        </h3>
-
-                                        <p>
-                                            {
-                                                selectedVacancy.description ||
-                                                "No description provided."
-                                            }
-                                        </p>
-
-                                    </div>
-
-                                    <div className="details-section">
-
-                                        <h3>
-                                            Responsibilities
-                                        </h3>
-
-                                        <p>
-                                            {
-                                                selectedVacancy.responsibilities ||
-                                                "No responsibilities added yet."
-                                            }
-                                        </p>
-
-                                    </div>
-
-                                    <div className="details-footer">
-
-                                        <div>
-
+                                        <div className="details-tags">
                                             <span>
-                                                Created
+                                                {
+                                                    selectedVacancy.employment_type ||
+                                                    "Not specified"
+                                                }
                                             </span>
 
-                                            <strong>
+                                            <span>
+                                                {selectedVacancy.minimum_experience
+                                                    ? `${selectedVacancy.minimum_experience}+ years experience`
+                                                    : "No experience required"}
+                                            </span>
+                                        </div>
+
+                                        <div className="details-section">
+                                            <h3>
+                                                Description
+                                            </h3>
+
+                                            <p>
                                                 {
-                                                    selectedVacancy.created_at
+                                                    selectedVacancy.description ||
+                                                    "No description provided."
+                                                }
+                                            </p>
+                                        </div>
+
+                                        <div className="details-section">
+                                            <h3>
+                                                Responsibilities
+                                            </h3>
+
+                                            <p>
+                                                {
+                                                    selectedVacancy.responsibilities ||
+                                                    "No responsibilities added yet."
+                                                }
+                                            </p>
+                                        </div>
+
+                                        <div className="details-footer">
+                                            <div>
+                                                <span>
+                                                    Created
+                                                </span>
+
+                                                <strong>
+                                                    {selectedVacancy.created_at
                                                         ? new Date(
                                                               selectedVacancy.created_at
                                                           ).toLocaleDateString()
-                                                        : "N/A"
-                                                }
-                                            </strong>
+                                                        : "N/A"}
+                                                </strong>
+                                            </div>
 
+                                            <div>
+                                                <span>
+                                                    Candidates
+                                                </span>
+
+                                                <strong>
+                                                    {
+                                                        selectedVacancy.candidates_count
+                                                    }
+                                                </strong>
+                                            </div>
                                         </div>
 
-                                        <div>
+                                        <div className="vacancy-details-actions">
+                                            <button
+                                                type="button"
+                                                className="close-details-button"
+                                                onClick={() => {
+                                                    setSelectedVacancy(
+                                                        null
+                                                    );
 
-                                            <span>
-                                                Candidates
-                                            </span>
+                                                    setActiveSection(
+                                                        "job-postings"
+                                                    );
+                                                }}
+                                            >
+                                                Close
+                                            </button>
 
-                                            <strong>
-                                                {
-                                                    selectedVacancy.candidates_count ||
-                                                    0
+                                            <button
+                                                type="button"
+                                                className="delete-vacancy-button"
+                                                onClick={() =>
+                                                    handleDeleteVacancy(
+                                                        selectedVacancy.id
+                                                    )
                                                 }
-                                            </strong>
-
+                                            >
+                                                Delete
+                                                Vacancy
+                                            </button>
                                         </div>
-
-                                    </div>
-
-                                    <div className="vacancy-details-actions">
-
-                                        <button
-                                            type="button"
-                                            className="close-details-button"
-                                            onClick={(event) => {
-                                                event.preventDefault();
-                                                event.stopPropagation();
-                                                setSelectedVacancy(null);
-                                            }}
-                                        >
-                                            Close
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            className="delete-vacancy-button"
-                                            onClick={(event) => {
-                                                event.preventDefault();
-                                                event.stopPropagation();
-                                                deleteVacancy(selectedVacancy.id);
-                                            }}
-                                        >
-                                            Delete Vacancy
-                                        </button>
-
-                                    </div>
-
-                                </>
-
-                            )}
-
+                                    </>
+                                )}
+                            </div>
                         </div>
-
-                    </div>
-
-                )}
-
+                    )}
             </main>
-
         </div>
     );
+
+    // =========================================================
+    // CANDIDATE COLUMN RENDERER  ("Vacancies" flow)
+    // Simple row: name, score %, View Profile button.
+    // =========================================================
+
+    function renderCandidateColumn(
+        application,
+        index
+    ) {
+        const candidate =
+            application.candidate;
+
+        const candidateUser =
+            candidate?.user;
+
+        const candidateName =
+            candidateUser?.name ||
+            candidate?.name ||
+            application.candidate_name ||
+            "Candidate";
+
+
+        const score =
+            getMatchScore(application);
+
+        return (
+            <div
+                className="candidate-column-row"
+                key={application.id}
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "16px",
+                    padding: "14px 18px",
+                    borderBottom:
+                        "1px solid rgba(128,128,128,0.2)",
+                }}
+            >
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        flex: 1,
+                        minWidth: 0,
+                    }}
+                >
+                    <span
+                        style={{
+                            opacity: 0.5,
+                            fontSize: "0.85em",
+                            width: "24px",
+                        }}
+                    >
+                        #{index + 1}
+                    </span>
+
+                    <div className="candidate-avatar">
+                        {candidateName
+                            .charAt(0)
+                            .toUpperCase()}
+                    </div>
+
+                    <strong
+                        style={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                        }}
+                    >
+                        {candidateName}
+                    </strong>
+                </div>
+
+                <div
+                    style={{
+                        minWidth: "80px",
+                        textAlign: "center",
+                    }}
+                >
+                    <strong>
+                        {score !== null
+                            ? `${score.toFixed(1)}%`
+                            : "N/A"}
+                    </strong>
+                </div>
+
+                <button
+                    type="button"
+                    className="view-candidate-button"
+                    onClick={() => {
+                        setSelectedCandidate({
+                            applications: [
+                                application,
+                            ],
+                            vacancyId:
+                                activeVacancyId,
+                        });
+
+                        setShowExtractedText(
+                            false
+                        );
+                    }}
+                >
+                    View Profile
+                </button>
+            </div>
+        );
+    }
+
+    // =========================================================
+    // CANDIDATE ROW RENDERER (detailed — Job Postings / primary
+    // shortlist modal only)
+    // =========================================================
+
+    function renderCandidateRow(
+        application,
+        index
+    ) {
+        const candidate =
+            application.candidate;
+
+        const candidateUser =
+            candidate?.user;
+
+        const candidateName =
+            candidateUser?.name ||
+            candidate?.name ||
+            application.candidate_name ||
+            "Candidate";
+
+        const candidateEmail =
+            candidateUser?.email ||
+            candidate?.email ||
+            application.candidate_email ||
+            "No email available";
+
+        const score =
+            getMatchScore(application);
+
+        const isExpanded =
+            expandedPrimaryCandidateId ===
+            application.id;
+
+        const isExtractedTextOpen =
+            primaryExtractedTextId ===
+            application.id;
+
+        return (
+            <div
+                className={`candidate-card ${
+                    index === 0
+                        ? "top-candidate"
+                        : ""
+                }`}
+                key={application.id}
+            >
+                {/* Always-visible summary row. Click to expand/collapse
+                    and reveal the CV parsing below. */}
+                <div
+                    className="candidate-card-header"
+                    style={{ cursor: "pointer" }}
+                    onClick={() =>
+                        setExpandedPrimaryCandidateId(
+                            (current) =>
+                                current ===
+                                application.id
+                                    ? null
+                                    : application.id
+                        )
+                    }
+                >
+                    <div className="candidate-ranking">
+                        #{index + 1}
+                    </div>
+
+                    <div className="candidate-avatar">
+                        {candidateName
+                            .charAt(0)
+                            .toUpperCase()}
+                    </div>
+
+                    <div className="candidate-main-info">
+                        <h3>
+                            {candidateName}
+                        </h3>
+
+                        <p>
+                            {candidateEmail}
+                        </p>
+                    </div>
+
+                    <div className="candidate-score-summary">
+                        <strong>
+                            {score !== null
+                                ? `${score.toFixed(
+                                      1
+                                  )}%`
+                                : "N/A"}
+                        </strong>
+
+                        <span>
+                            {getMatchCategory(
+                                application
+                            )}
+                        </span>
+                    </div>
+
+                    <span
+                        className={`candidate-status status-${
+                            application.status ||
+                            "new"
+                        }`}
+                    >
+                        {(
+                            application.status ||
+                            "new"
+                        ).toUpperCase()}
+                    </span>
+
+                    <span
+                        style={{
+                            marginLeft: "8px",
+                            opacity: 0.6,
+                            fontSize: "0.8em",
+                        }}
+                    >
+                        {isExpanded ? "▲" : "▼"}
+                    </span>
+                </div>
+
+                {/* Everything below only renders once the row is
+                    clicked open. */}
+                {isExpanded && (
+                    <>
+                        <div className="candidate-details-grid">
+                            <div>
+                                <span>
+                                    Phone
+                                </span>
+
+                                <strong>
+                                    {candidate?.phone ||
+                                        "Not provided"}
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>
+                                    Location
+                                </span>
+
+                                <strong>
+                                    {candidate?.address ||
+                                        "Not provided"}
+                                </strong>
+                            </div>
+                        </div>
+
+                        {application.cv && (
+                            <div className="cv-section">
+                                <div className="cv-section-header">
+                                    <div>
+                                        <span className="cv-section-label">
+                                            CV
+                                        </span>
+<button
+    type="button"
+    className="cv-file-link"
+    onClick={(event) => {
+        event.stopPropagation();
+        handleViewCv(application.cv);
+    }}
+>
+    📄{" "}
+    {application.cv.file_name || "View CV"}
+</button>
+   
+                                    </div>
+
+                                    <span className="cv-processing-status">
+                                        {application.cv
+                                            .processing_status ||
+                                            "pending"}
+                                    </span>
+                                </div>
+
+                                <div className="cv-stats">
+                                    {Object.entries(
+                                        getCvStats(
+                                            application.cv
+                                        )
+                                    ).map(
+                                        ([
+                                            label,
+                                            value,
+                                        ]) => (
+                                            <div
+                                                className="cv-stat"
+                                                key={
+                                                    label
+                                                }
+                                            >
+                                                <span>
+                                                    {label.toUpperCase()}
+                                                </span>
+
+                                                <strong>
+                                                    {value}
+                                                </strong>
+                                            </div>
+                                        )
+                                    )}
+                                </div>
+
+                                <button
+                                    type="button"
+                                    className="extracted-text-button"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+
+                                        setPrimaryExtractedTextId(
+                                            (current) =>
+                                                current ===
+                                                application.id
+                                                    ? null
+                                                    : application.id
+                                        );
+                                    }}
+                                >
+                                    {isExtractedTextOpen
+                                        ? "Hide extracted text"
+                                        : "View extracted text"}
+                                </button>
+
+                                {isExtractedTextOpen && (
+                                    <div className="extracted-text">
+                                        {application.cv
+                                            .extracted_text ||
+                                            "No extracted text available."}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {score !== null && (
+                            <div className="matching-section">
+                                <div className="matching-header">
+                                    <div>
+                                        <span className="matching-label">
+                                            CV MATCH
+                                        </span>
+
+                                        <h4>
+                                            Candidate
+                                            Match
+                                        </h4>
+
+                                        <p>
+                                            AI-assisted
+                                            compatibility
+                                            analysis for
+                                            this vacancy.
+                                        </p>
+                                    </div>
+
+                                    <div className="match-score-circle">
+                                        <strong>
+                                            {score.toFixed(
+                                                1
+                                            )}
+                                            %
+                                        </strong>
+
+                                        <span>
+                                            Match
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="match-category">
+                                    <span className="match-category-dot"></span>
+
+                                    {getMatchCategory(
+                                        application
+                                    )}
+                                </div>
+
+                                <div className="match-overall-bar">
+                                    <div className="match-overall-header">
+                                        <span>
+                                            Overall
+                                            match
+                                            score
+                                        </span>
+
+                                        <strong>
+                                            {score.toFixed(
+                                                1
+                                            )}{" "}
+                                            / 100
+                                        </strong>
+                                    </div>
+
+                                    <div className="match-bar-track">
+                                        <div
+                                            className="match-bar-fill overall"
+                                            style={{
+                                                width: `${score}%`,
+                                            }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="candidate-card-footer">
+                            <div>
+                                <span>
+                                    Application
+                                    status
+                                </span>
+
+                                <select
+                                    value={
+                                        application.status ||
+                                        "new"
+                                    }
+                                    disabled={
+                                        statusUpdating
+                                    }
+                                    onClick={(event) =>
+                                        event.stopPropagation()
+                                    }
+                                    onChange={(e) =>
+                                        handleStatusChange(
+                                            application.id,
+                                            e.target.value
+                                        )
+                                    }
+                                >
+                                    <option value="new">
+                                        New
+                                    </option>
+
+                                    <option value="screening">
+                                        Screening
+                                    </option>
+
+                                    <option value="shortlisted">
+                                        Shortlisted
+                                    </option>
+
+                                    <option value="hiring_manager_shortlisted">
+                                        Hiring Manager Shortlisted
+                                    </option>
+
+                                    <option value="interview">
+                                        Interview
+                                    </option>
+
+                                    <option value="selected">
+                                        Selected
+                                    </option>
+
+                                    <option value="rejected">
+                                        Rejected
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div className="application-date">
+                                <span>
+                                    Applied
+                                </span>
+
+                                <strong>
+                                    {application.applied_at
+                                        ? new Date(
+                                              application.applied_at
+                                          ).toLocaleDateString()
+                                        : "N/A"}
+                                </strong>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="view-candidate-button"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+
+                                    setSelectedCandidate(
+                                        {
+                                            applications: [
+                                                application,
+                                            ],
+                                            vacancyId:
+                                                activeVacancyId,
+                                        }
+                                    );
+
+                                    setShowExtractedText(
+                                        false
+                                    );
+                                }}
+                            >
+                                View Profile
+                            </button>
+                        </div>
+                    </>
+                )}
+            </div>
+        );
+    }
 }
+
+// =============================================================
+// CANDIDATE DETAIL MODAL
+// =============================================================
+
+function CandidateDetailModal({
+    selectedCandidate,
+    setSelectedCandidate,
+    showExtractedText,
+    setShowExtractedText,
+    getCvStats,
+    getMatchScore,
+    getMatchCategory,
+    handleStatusChange,
+    statusUpdating,
+    handleViewCv,
+}) {
+    const application =
+        selectedCandidate?.applications?.[0];
+
+    if (!application) {
+        return null;
+    }
+
+    const candidate =
+        application.candidate;
+
+    const candidateUser =
+        candidate?.user;
+
+    const candidateName =
+        candidateUser?.name ||
+        candidate?.name ||
+        application.candidate_name ||
+        "Candidate";
+
+    
+
+    const score =
+        getMatchScore(application);
+
+    return (
+        <div className="modal-overlay">
+            <div className="candidate-modal">
+                <button
+                    className="modal-close"
+                    onClick={() => {
+                        setSelectedCandidate(
+                            null
+                        );
+
+                        setShowExtractedText(
+                            false
+                        );
+                    }}
+                >
+                    ×
+                </button>
+
+                <p className="modal-eyebrow">
+                    CANDIDATE PROFILE
+                </p>
+
+                <h2>
+                    {candidateName}
+                </h2>
+
+                <p className="modal-description">
+                    Candidate details and
+                    recruitment information.
+                </p>
+
+                <div className="candidate-list">
+                    <div className="candidate-card">
+                        <div className="candidate-card-header">
+                            <div className="candidate-avatar">
+                                {candidateName
+                                    .charAt(0)
+                                    .toUpperCase()}
+                            </div>
+
+                            <div className="candidate-main-info">
+                                <h3>
+                                    {candidateName}
+                                </h3>
+
+                                <p>
+                                    {candidateUser?.email ||
+                                        candidate?.email ||
+                                        "No email available"}
+                                </p>
+                            </div>
+
+                            <div className="candidate-score-summary">
+                                <strong>
+                                    {score !==
+                                    null
+                                        ? `${score.toFixed(
+                                              1
+                                          )}%`
+                                        : "N/A"}
+                                </strong>
+
+                                <span>
+                                    {getMatchCategory(
+                                        application
+                                    )}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="candidate-details-grid">
+                            <div>)
+                                <span>
+                                    Phone
+                                </span>
+
+                                <strong>
+                                    {candidate?.phone ||
+                                        "Not provided"}
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>
+                                    Location
+                                </span>
+
+                                <strong>
+                                    {candidate?.address ||
+                                        "Not provided"}
+                                </strong>
+                            </div>
+                        </div>
+
+                        {application.cv && (
+                            <div className="cv-section">
+                                <div className="cv-section-header">
+                                    <div>
+                                        <span className="cv-section-label">
+                                            CV
+                                        </span>
+
+                                        <button
+    type="button"
+    className="cv-file-link"
+    onClick={() =>
+        handleViewCv(application.cv)
+    }
+>
+    📄{" "}
+    {application.cv.file_name ||
+        "View CV"}
+</button>
+                                    </div>
+                                </div>
+
+                                <div className="cv-stats">
+                                    {Object.entries(
+                                        getCvStats(
+                                            application.cv
+                                        )
+                                    ).map(
+                                        ([
+                                            label,
+                                            value,
+                                        ]) => (
+                                            <div
+                                                className="cv-stat"
+                                                key={
+                                                    label
+                                                }
+                                            >
+                                                <span>
+                                                    {label.toUpperCase()}
+                                                </span>
+
+                                                <strong>
+                                                    {
+                                                        value
+                                                    }
+                                                </strong>
+                                            </div>
+                                        )
+                                    )}
+                                </div>
+
+                                <button
+                                    type="button"
+                                    className="extracted-text-button"
+                                    onClick={() =>
+                                        setShowExtractedText(
+                                            !showExtractedText
+                                        )
+                                    }
+                                >
+                                    {showExtractedText
+                                        ? "Hide extracted text"
+                                        : "View extracted text"}
+                                </button>
+
+                                {showExtractedText && (
+                                    <div className="extracted-text">
+                                        {application
+                                            .cv
+                                            .extracted_text ||
+                                            "No extracted text available."}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="matching-section">
+                            <div className="matching-header">
+                                <div>
+                                    <span className="matching-label">
+                                        CV MATCH
+                                    </span>
+
+                                    <h4>
+                                        Candidate
+                                        Match
+                                    </h4>
+
+                                    <p>
+                                        AI-assisted
+                                        compatibility
+                                        analysis.
+                                    </p>
+                                </div>
+
+                                <div className="match-score-circle">
+                                    <strong>
+                                        {score !==
+                                        null
+                                            ? `${score.toFixed(
+                                                  1
+                                              )}%`
+                                            : "N/A"}
+                                    </strong>
+
+                                    <span>
+                                        Match
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="match-category">
+                                <span className="match-category-dot"></span>
+
+                                {getMatchCategory(
+                                    application
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="candidate-card-footer">
+                            <div>
+                                <span>
+                                    Application
+                                    status
+                                </span>
+
+                                <select
+                                    value={
+                                        application.status ||
+                                        "new"
+                                    }
+                                    disabled={
+                                        statusUpdating
+                                    }
+                                    onChange={(e) =>
+                                        handleStatusChange(
+                                            application.id,
+                                            e.target.value
+                                        )
+                                    }
+                                >
+                                    <option value="new">
+                                        New
+                                    </option>
+
+                                    <option value="screening">
+                                        Screening
+                                    </option>
+
+                                    <option value="shortlisted">
+                                        Shortlisted
+                                    </option>
+
+                                    <option value="hiring_manager_shortlisted">
+                                        Hiring Manager Shortlisted
+                                    </option>
+
+                                    <option value="interview">
+                                        Interview
+                                    </option>
+
+                                    <option value="selected">
+                                        Selected
+                                    </option>
+
+                                    <option value="rejected">
+                                        Rejected
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div className="application-date">
+                                <span>
+                                    Applied
+                                </span>
+
+                                <strong>
+                                    {application.applied_at
+                                        ? new Date(
+                                              application.applied_at
+                                          ).toLocaleDateString()
+                                        : "N/A"}
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+
+}
+
 
 export default HRDashboard;

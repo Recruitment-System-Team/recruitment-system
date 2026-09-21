@@ -13,6 +13,49 @@ class ApplicationController extends Controller
      * Candidates only see their own applications.
      * Staff users can see all applications.
      */
+
+
+    public function sendShortlistedToHR(Request $request)
+{
+    $validated = $request->validate([
+        'job_position_id' => 'required|exists:job_positions,id',
+        'application_ids' => 'required|array|min:1',
+        'application_ids.*' => 'integer|exists:applications,id',
+    ]);
+
+    $applications = Application::whereIn(
+        'id',
+        $validated['application_ids']
+    )
+        ->where('job_position_id', $validated['job_position_id'])
+        ->where('sent_to_hiring_manager', true)
+        ->get();
+
+    if ($applications->isEmpty()) {
+        return response()->json([
+            'message' => 'No valid candidates were selected.'
+        ], 404);
+    }
+
+    $applications->each(function ($application) {
+        $application->update([
+            'shortlisted_by_hiring_manager' => true,
+        ]);
+    });
+
+    $applications->load([
+        'candidate.user',
+        'jobPosition',
+        'cv'
+    ]);
+
+    return response()->json([
+        'message' => 'Selected candidates have been shortlisted and sent back to HR.',
+        'applications' => $applications,
+    ]);
+}
+
+
     public function index(Request $request)
     {
         $user = $request->user();

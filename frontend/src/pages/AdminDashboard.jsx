@@ -3,15 +3,22 @@ import "./AdminDashboard.css";
 
 const API_URL =
     import.meta.env.VITE_API_URL ||
-    "http://127.0.0.1:8001/api";
+    "http://127.0.0.1:8000/api";
 
 const STAFF_ROLES = [
     "HR Manager",
     "Hiring Manager",
     "Interviewer",
 ];
+const STAFF_POSITIONS = [
+    "HR Manager",
+    "Hiring Manager",
+    "Tech Lead",
+    "Senior Software Engineer",
+];
 
 function AdminDashboard() {
+    
     const user = JSON.parse(localStorage.getItem("user") || "null");
     const token = localStorage.getItem("token");
 
@@ -28,11 +35,12 @@ const [selectedUser, setSelectedUser] = useState(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
 
     const [form, setForm] = useState({
-        name: "",
-        email: "",
-        password: "",
-        role: "HR Manager",
-    });
+    name: "",
+    email: "",
+    password: "",
+    role: "HR Manager",
+    position: "HR Manager",
+});
 
     const [creating, setCreating] = useState(false);
     const [createError, setCreateError] = useState("");
@@ -136,18 +144,27 @@ const [selectedUser, setSelectedUser] = useState(null);
     };
 
     const openCreateModal = (
-        role = "HR Manager"
-    ) => {
-        setForm({
-            name: "",
-            email: "",
-            password: "",
-            role,
-        });
+    role = "HR Manager"
+) => {
+    let defaultPosition = "HR Manager";
 
-        setCreateError("");
-        setShowCreateModal(true);
-    };
+    if (role === "Hiring Manager") {
+        defaultPosition = "Hiring Manager";
+    } else if (role === "Interviewer") {
+        defaultPosition = "Tech Lead";
+    }
+
+    setForm({
+        name: "",
+        email: "",
+        password: "",
+        role,
+        position: defaultPosition,
+    });
+
+    setCreateError("");
+    setShowCreateModal(true);
+};
 
 
     const handleLogout = async () => {
@@ -225,6 +242,7 @@ const [selectedUser, setSelectedUser] = useState(null);
                 email: "",
                 password: "",
                 role: "HR Manager",
+                position: "HR Manager", 
             });
 
             alert(
@@ -244,6 +262,47 @@ const [selectedUser, setSelectedUser] = useState(null);
             setCreating(false);
         }
     };
+
+    const connectGoogleCalendar = async (account) => {
+    try {
+        const response = await fetch(
+            `${API_URL}/admin/users/${account.id}/google-calendar/connect`,
+            {
+                headers: {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                    "Unable to start Google Calendar connection."
+            );
+        }
+
+        if (!data.url) {
+            throw new Error(
+                "Google authorization URL was not returned."
+            );
+        }
+
+        window.location.href = data.url;
+    } catch (error) {
+        console.error(
+            "GOOGLE CALENDAR CONNECT ERROR:",
+            error
+        );
+
+        alert(
+            error.message ||
+                "Unable to connect Google Calendar."
+        );
+    }
+};
 
     return (
         <div
@@ -705,6 +764,16 @@ const [selectedUser, setSelectedUser] = useState(null);
                                             View Profile
                                         </button>
 
+                                       <button
+    type="button"
+    className="admin-calendar-button"
+    onClick={() => connectGoogleCalendar(account)}
+>
+    {account.google_calendar_connection
+        ? "Reconnect Calendar"
+        : "Connect Calendar"}
+</button>
+
                                     </div>
                                 )
                             )}
@@ -975,60 +1044,86 @@ const [selectedUser, setSelectedUser] = useState(null);
                                 />
                             </div>
 
-                            <div className="admin-form-group">
-                                <label>
-                                    Staff Role
-                                </label>
+                          <div className="admin-form-group">
+    <label>
+        Staff Role
+    </label>
 
-                                <select
-                                    name="role"
-                                    value={
-                                        form.role
-                                    }
-                                    onChange={
-                                        handleFormChange
-                                    }
-                                >
-                                    {STAFF_ROLES
-                                        .filter(
-                                            (
-                                                role
-                                            ) =>
-                                                role !==
-                                                "System Administrator"
-                                        )
-                                        .map(
-                                            (
-                                                role
-                                            ) => (
-                                                <option
-                                                    key={
-                                                        role
-                                                    }
-                                                    value={
-                                                        role
-                                                    }
-                                                >
-                                                    {
-                                                        role
-                                                    }
-                                                </option>
-                                            )
-                                        )}
-                                </select>
-                            </div>
+    <select
+        name="role"
+        value={
+            form.role
+        }
+        onChange={
+            handleFormChange
+        }
+    >
+        {STAFF_ROLES
+            .filter(
+                (
+                    role
+                ) =>
+                    role !==
+                    "System Administrator"
+            )
+            .map(
+                (
+                    role
+                ) => (
+                    <option
+                        key={
+                            role
+                        }
+                        value={
+                            role
+                        }
+                    >
+                        {
+                            role
+                        }
+                    </option>
+                )
+            )}
+    </select>
+</div>
 
-                            <button
-                                className="admin-modal-create-button"
-                                type="submit"
-                                disabled={
-                                    creating
-                                }
-                            >
-                                {creating
-                                    ? "Creating..."
-                                    : "Create Staff Account"}
-                            </button>
+{/* COMPANY POSITION */}
+
+<div className="admin-form-group">
+    <label>
+        Company Position
+    </label>
+
+    <select
+        name="position"
+        value={form.position}
+        onChange={handleFormChange}
+        required
+    >
+        {STAFF_POSITIONS.map(
+            (position) => (
+                <option
+                    key={position}
+                    value={position}
+                >
+                    {position}
+                </option>
+            )
+        )}
+    </select>
+</div>
+
+<button
+    className="admin-modal-create-button"
+    type="submit"
+    disabled={
+        creating
+    }
+>
+    {creating
+        ? "Creating..."
+        : "Create Staff Account"}
+</button>
 
                         </form>
 
@@ -1039,6 +1134,10 @@ const [selectedUser, setSelectedUser] = useState(null);
 
         </div>
     );
+
+   
 }
+
+ 
 
 export default AdminDashboard;

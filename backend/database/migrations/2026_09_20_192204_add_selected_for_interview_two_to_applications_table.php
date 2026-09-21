@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -7,26 +6,19 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('applications', function (Blueprint $table) {
-            $table->boolean('shortlisted_by_hiring_manager')
+            $table->boolean('selected_for_interview_two')
                 ->default(false)
-                ->after('sent_to_hiring_manager');
+                ->after('shortlisted_by_hiring_manager');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('applications', function (Blueprint $table) {
-            $table->dropColumn('shortlisted_by_hiring_manager');
+            $table->dropColumn('selected_for_interview_two');
         });
     }
 };
-

@@ -460,6 +460,164 @@ background 0.2s ease,
 
 }
 
+/* =========================================================
+   DYNAMIC VACANCY SIDEBAR
+   ========================================================= */
+
+.sidebar-vacancies {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 2px;
+}
+
+.sidebar-vacancy {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+/* Vacancy name */
+.sidebar-vacancy-name {
+    width: 100%;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+
+    border: 1px solid transparent;
+    border-radius: 12px;
+
+    background: transparent;
+    color: rgba(255, 255, 255, 0.62);
+
+    font-size: 12px;
+    font-weight: 500;
+    text-align: left;
+
+    cursor: pointer;
+    transition:
+        background 0.2s ease,
+        border 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.sidebar-vacancy-name:hover {
+    background: rgba(255, 255, 255, 0.075);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: white;
+}
+
+/* Vacancy arrow */
+.vacancy-arrow {
+    width: 18px;
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: rgba(255, 255, 255, 0.38);
+    font-size: 15px;
+
+    transition: transform 0.2s ease;
+}
+
+.sidebar-vacancy-name.selected {
+    color: white;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(169, 85, 255, 0.18),
+            rgba(47, 85, 231, 0.12)
+        );
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.sidebar-vacancy-name.selected .vacancy-arrow {
+    color: #b97aff;
+    transform: rotate(90deg);
+}
+
+/* Candidate child item */
+.sidebar-candidates {
+    width: calc(100% - 24px);
+    min-height: 34px;
+
+    margin-left: 24px;
+    padding: 6px 10px;
+
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    border: 1px solid transparent;
+    border-radius: 9px;
+
+    background: transparent;
+    color: rgba(255, 255, 255, 0.42);
+
+    font-size: 11px;
+    text-align: left;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        border 0.2s ease,
+        color 0.2s ease;
+}
+
+.sidebar-candidates:hover {
+    background: rgba(255, 255, 255, 0.055);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.sidebar-candidates.active {
+    background:
+        rgba(169, 85, 255, 0.12);
+    border-color:
+        rgba(169, 85, 255, 0.15);
+    color: white;
+}
+
+/* Tree connector */
+.candidate-tree {
+    width: 14px;
+    flex-shrink: 0;
+
+    color: rgba(255, 255, 255, 0.25);
+    font-size: 14px;
+}
+
+/* Candidate count */
+.sidebar-count {
+    margin-left: auto;
+
+    min-width: 21px;
+    height: 21px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background:
+        rgba(169, 85, 255, 0.15);
+
+    border:
+        1px solid rgba(169, 85, 255, 0.18);
+
+    color:
+        rgba(255, 255, 255, 0.65);
+
+    font-size: 9px;
+    font-weight: 700;
+}
+
 .menu-item span {
 
     width: 22px;
@@ -3620,7 +3778,63 @@ background 0.2s ease,
 
 }
 
+/* =========================================================
+   LIGHT MODE - DYNAMIC VACANCY SIDEBAR
+   ========================================================= */
 
+.dashboard.light-mode .sidebar-vacancy-name {
+    color: rgba(23, 19, 31, 0.62);
+}
+
+.dashboard.light-mode .sidebar-vacancy-name:hover {
+    background: rgba(169, 85, 255, 0.08);
+    border-color: rgba(169, 85, 255, 0.10);
+    color: #1a0046;
+}
+
+.dashboard.light-mode .sidebar-vacancy-name.selected {
+    background:
+        linear-gradient(
+            135deg,
+            rgba(169, 85, 255, 0.13),
+            rgba(47, 85, 231, 0.09)
+        );
+    border-color: rgba(169, 85, 255, 0.14);
+    color: #1a0046;
+}
+
+.dashboard.light-mode .vacancy-arrow {
+    color: rgba(23, 19, 31, 0.35);
+}
+
+.dashboard.light-mode .sidebar-vacancy-name.selected .vacancy-arrow {
+    color: #7b35d4;
+}
+
+.dashboard.light-mode .sidebar-candidates {
+    color: rgba(23, 19, 31, 0.48);
+}
+
+.dashboard.light-mode .sidebar-candidates:hover {
+    background: rgba(169, 85, 255, 0.06);
+    color: #1a0046;
+}
+
+.dashboard.light-mode .sidebar-candidates.active {
+    background: rgba(169, 85, 255, 0.10);
+    border-color: rgba(169, 85, 255, 0.12);
+    color: #1a0046;
+}
+
+.dashboard.light-mode .candidate-tree {
+    color: rgba(23, 19, 31, 0.25);
+}
+
+.dashboard.light-mode .sidebar-count {
+    background: rgba(169, 85, 255, 0.10);
+    border-color: rgba(169, 85, 255, 0.14);
+    color: #5c2a9e;
+}
 
 /* =========================================================
 
@@ -5088,4 +5302,909 @@ background 0.2s ease,
     .delete-vacancy-button {
         width: 100%;
     }
+}
+
+
+/* =========================================================
+   CANDIDATE ROW LIST
+   ========================================================= */
+
+.candidate-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.candidate-row {
+    width: 100%;
+    min-height: 76px;
+
+    display: grid;
+    grid-template-columns: 55px minmax(220px, 1fr) 180px 150px;
+    align-items: center;
+    gap: 20px;
+
+    padding: 14px 18px;
+
+    background: rgba(255, 255, 255, 0.045);
+
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    border-radius: 14px;
+
+    box-sizing: border-box;
+
+    transition:
+        background 0.2s ease,
+        border 0.2s ease,
+        transform 0.2s ease;
+}
+
+.candidate-row:hover {
+    background: rgba(255, 255, 255, 0.075);
+
+    border-color: rgba(169, 85, 255, 0.25);
+
+    transform: translateY(-1px);
+}
+
+
+/* Rank */
+
+.candidate-rank {
+    font-size: 13px;
+    font-weight: 700;
+
+    color: rgba(255, 255, 255, 0.45);
+
+    text-align: center;
+}
+
+
+/* Candidate name */
+
+.candidate-name {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.candidate-name strong {
+    font-size: 14px;
+    font-weight: 600;
+
+    color: white;
+}
+
+.candidate-name span {
+    font-size: 10px;
+
+    color: rgba(255, 255, 255, 0.38);
+}
+
+
+/* CV score */
+
+.candidate-score {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.candidate-score strong {
+    font-size: 14px;
+    font-weight: 700;
+
+    color: #b97aff;
+}
+
+.candidate-score span {
+    font-size: 10px;
+
+    color: rgba(255, 255, 255, 0.38);
+}
+
+
+/* View Profile */
+
+.candidate-action {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.candidate-action button {
+    border: 1px solid rgba(169, 85, 255, 0.25);
+
+    background: rgba(169, 85, 255, 0.12);
+
+    color: white;
+
+    padding: 9px 15px;
+
+    border-radius: 9px;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        border 0.2s ease,
+        transform 0.2s ease;
+}
+
+.candidate-action button:hover {
+    background: rgba(169, 85, 255, 0.22);
+
+    border-color: rgba(169, 85, 255, 0.4);
+
+    transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   INTERVIEW PAGE
+========================================================= */
+
+.interview-page {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 10px 0 40px;
+}
+
+.interview-page-header {
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.interview-page-header h2 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700;
+}
+
+.interview-page-header p {
+    margin: 5px 0 0;
+    opacity: 0.65;
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   INTERVIEW BLOCK
+========================================================= */
+
+.interview-block {
+    padding: 26px 0 32px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.interview-block-header {
+    margin-bottom: 18px;
+}
+
+.interview-block-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.interview-block-header p {
+    margin: 5px 0 0;
+    font-size: 13px;
+    opacity: 0.6;
+}
+
+
+/* =========================================================
+   CANDIDATE TABLE
+========================================================= */
+
+.interview-table {
+    width: 100%;
+}
+
+.interview-table-row {
+    display: grid;
+    grid-template-columns: 2fr 0.7fr 1fr 1fr;
+    align-items: center;
+    min-height: 58px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 14px;
+}
+
+.interview-table-head {
+    min-height: 42px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.6;
+}
+
+.interview-table-row > div {
+    padding: 8px 14px;
+}
+
+.candidate-name-cell {
+    font-weight: 600;
+}
+
+.interview-two-head {
+    grid-template-columns: 2fr 0.8fr 1fr;
+}
+
+.interview-two-row {
+    grid-template-columns: 2fr 0.8fr 1fr;
+}
+
+.interview-empty-row {
+    padding: 24px 14px;
+    text-align: center;
+    font-size: 14px;
+    opacity: 0.55;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+.interview-link-button,
+.interview-select-button,
+.interview-profile-button,
+.interview-choose-button,
+.interview-schedule-button {
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+}
+
+.interview-link-button {
+    background: none;
+    padding: 0;
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    opacity: 0.8;
+}
+
+.interview-link-button:hover {
+    opacity: 1;
+}
+
+.interview-select-button {
+    padding: 7px 16px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    color: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.interview-select-button:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.interview-moved-status {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+
+/* =========================================================
+   SCHEDULING
+========================================================= */
+
+.interview-scheduling {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.interview-scheduling h4 {
+    margin: 0 0 22px;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.interview-date-field {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    margin-bottom: 24px;
+}
+
+.interview-date-field label {
+    min-width: 120px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.interview-date-field input {
+    width: 190px;
+    padding: 9px 11px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    color: inherit;
+    font: inherit;
+}
+
+
+/* =========================================================
+   AVAILABILITY
+========================================================= */
+
+.interviewer-availability {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.availability-title {
+    padding: 16px 0 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.55;
+}
+
+.interviewer-group {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.interviewer-role {
+    padding: 13px 0 7px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.interviewer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 58px;
+    padding: 8px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.interviewer-row.selected {
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.interviewer-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.interviewer-info strong {
+    font-size: 14px;
+}
+
+.interviewer-info span {
+    font-size: 12px;
+    opacity: 0.55;
+}
+
+.interviewer-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.available-label {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.interviewer-unavailable {
+    padding: 13px 0;
+    font-size: 13px;
+    opacity: 0.55;
+}
+
+.interview-profile-button {
+    padding: 6px 10px;
+    background: transparent;
+    color: inherit;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.interview-choose-button {
+    min-width: 78px;
+    padding: 7px 12px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.08);
+    color: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.interview-choose-button:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.interview-schedule-button {
+    margin-top: 22px;
+    padding: 10px 18px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.12);
+    color: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    font-weight: 600;
+}
+
+.interview-schedule-button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.interview-schedule-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   CONFIRMATION
+========================================================= */
+
+.interview-confirmation {
+    margin-top: 14px;
+    padding: 10px 0;
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+
+/* =========================================================
+   INTERVIEWER PROFILE
+========================================================= */
+
+.interviewer-profile-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.interviewer-profile-modal {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    padding: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    background: rgba(25, 25, 30, 0.97);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.interviewer-profile-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 25px;
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.interviewer-profile-close:hover {
+    opacity: 1;
+}
+
+.interviewer-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.interviewer-avatar {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    font-weight: 700;
+}
+
+.interviewer-profile-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.interviewer-profile-header p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    opacity: 0.55;
+}
+
+.interviewer-profile-details {
+    padding-top: 8px;
+}
+
+.profile-detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.profile-detail-row span {
+    font-size: 12px;
+    opacity: 0.55;
+}
+
+.profile-detail-row strong {
+    font-size: 13px;
+    text-align: right;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 800px) {
+
+    .interview-table-row {
+        grid-template-columns: 1.5fr 0.7fr 1fr 1fr;
+        font-size: 13px;
+    }
+
+    .interviewer-row {
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .interviewer-actions {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .interview-date-field {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+}
+
+@media (max-width: 600px) {
+
+    .interview-table-row {
+        grid-template-columns: 1fr;
+        gap: 4px;
+        padding: 12px 0;
+    }
+
+    .interview-table-head {
+        display: none;
+    }
+
+    .interview-table-row > div {
+        padding: 3px 12px;
+    }
+
+    .interview-table-row > div::before {
+        content: attr(data-label);
+        margin-right: 8px;
+        font-size: 10px;
+        text-transform: uppercase;
+        opacity: 0.5;
+    }
+
+    .interviewer-row {
+        flex-direction: column;
+    }
+
+    .interviewer-actions {
+        justify-content: flex-start;
+    }
+
+}
+.interview-action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+.interview-action-buttons button {
+    white-space: nowrap;
+}
+.interview-profile-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.interview-profile-modal {
+    width: min(650px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.interview-profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.interview-profile-header h2 {
+    margin: 0 0 6px;
+}
+
+.interview-profile-header p {
+    margin: 0;
+    opacity: 0.65;
+}
+
+.interview-profile-close {
+    border: none;
+    background: transparent;
+    font-size: 28px;
+    cursor: pointer;
+}
+
+.interview-profile-details {
+    display: grid;
+    gap: 18px;
+}
+
+.interview-profile-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.interview-profile-field label {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.interview-profile-value {
+    font-size: 16px;
+}
+
+.interview-profile-field input,
+.interview-profile-field select {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1px solid #d8d8df;
+    border-radius: 10px;
+    font: inherit;
+}
+
+.interview-email-button {
+    width: fit-content;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+.interview-profile-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 28px;
+}
+
+.interview-profile-action-button {
+    padding: 11px 18px;
+    border: 1px solid #d8d8df;
+    border-radius: 10px;
+    background: #ffffff;
+    cursor: pointer;
+}
+
+.interview-profile-action-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.interview-profile-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 28px;
+}
+
+.interview-profile-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 3, 33, 0.72);
+    backdrop-filter: blur(8px);
+}
+
+.interview-profile-modal {
+    width: min(650px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+    background: rgba(24, 14, 49, 0.96);
+    color: #f5f5f7;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 22px;
+    padding: 30px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+}
+
+/* Force readable text inside the profile */
+.interview-profile-modal h2,
+.interview-profile-modal h3,
+.interview-profile-modal p,
+.interview-profile-modal label,
+.interview-profile-modal span,
+.interview-profile-modal strong,
+.interview-profile-modal div {
+    color: #f5f5f7;
+}
+
+.interview-profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 26px;
+}
+
+.interview-profile-header h2 {
+    margin: 0 0 6px;
+    font-size: 24px;
+}
+
+.interview-profile-header p {
+    margin: 0;
+    color: #9696a5;
+    font-size: 14px;
+}
+
+.interview-profile-close {
+    border: none;
+    background: transparent;
+    color: #7c7d82;
+    font-size: 30px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.interview-profile-details {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.interview-profile-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.interview-profile-field label {
+    color: #55555f;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.interview-profile-value {
+    color: #202124;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* Status dropdown */
+.interview-profile-field select {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1px solid #d6d6df;
+    border-radius: 10px;
+    background: #eae0ed;
+    color: #202124;
+    font-size: 15px;
+    outline: none;
+}
+
+/* Make dropdown options readable */
+.interview-profile-field select option {
+    background:#eae0ed;
+    color: #202124;
+}
+
+/* Date input */
+.interview-profile-field input[type="date"] {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1px solid #d6d6df;
+    border-radius: 10px;
+    background: #eae0ed;
+    color: #202124;
+    font-size: 15px;
+    outline: none;
+}
+
+.interview-profile-field input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+}
+
+/* Email */
+.interview-email-button {
+    width: fit-content;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #c9cacf;
+    font-size: 15px;
+    cursor: pointer;
+    text-align: left;
+}
+
+/* View CV + Feedback */
+.interview-profile-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 28px;
+}
+
+.interview-profile-action-button {
+    padding: 11px 20px;
+    border: 1px solid #d6d6df;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #202124;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.interview-profile-action-button:hover {
+    background: #f5f5f7;
+}
+
+.interview-profile-action-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Confirm & Schedule */
+.interview-profile-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 28px;
+}
+
+.interview-profile-footer .interview-schedule-button {
+    color: #ffffff;
 }

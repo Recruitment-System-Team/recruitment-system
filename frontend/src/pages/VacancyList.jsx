@@ -1,10 +1,10 @@
 // src/pages/Vacancy.jsx
 import React, { useState, useEffect } from 'react';
-import CandidateProfilePopup from './CandidateProfilePopup'; // Import the new popup component
+
 
 const Vacancy = () => {
   const [vacancies, setVacancies] = useState([]);
-  const [selectedJobId, setSelectedJobId] = useState(null); // Tracks clicked vacancy
+  
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,16 +25,7 @@ const Vacancy = () => {
       });
   }, []);
 
-  // When a vacancy is clicked, switch view to CandidateProfilePopup
-  if (selectedJobId) {
-    return (
-      <CandidateProfilePopup
-        jobId={selectedJobId}
-        onBack={() => setSelectedJobId(null)}
-      />
-    );
-  }
-
+  
   // Primary Vacancies List View
   return (
     <div style={{ padding: '20px' }}>
@@ -45,24 +36,22 @@ const Vacancy = () => {
       ) : (
         <div style={{ display: 'grid', gap: '15px', marginTop: '15px' }}>
           {vacancies.map((vacancy) => (
-            <div
-              key={vacancy.id}
-              onClick={() => setSelectedJobId(vacancy.id)}
-              style={{
-                border: '1px solid #ccc',
-                padding: '15px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                backgroundColor: '#fff'
-              }}
-            >
-              <h3>{vacancy.title}</h3>
-              <p>Department: {vacancy.department || 'General'}</p>
-              <span style={{ color: '#007bff', fontWeight: 'bold' }}>
-                View Top Shortlisted Candidates &rarr;
-              </span>
-            </div>
-          ))}
+    <div
+        key={vacancy.id}
+        style={{
+            border: '1px solid #ccc',
+            padding: '15px',
+            borderRadius: '8px',
+            backgroundColor: '#fff'
+        }}
+    >
+        <h3>{vacancy.title}</h3>
+
+        <p>
+            Department: {vacancy.department || 'General'}
+        </p>
+    </div>
+))}
         </div>
       )}
     </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 
 import Login from "./pages/Login";
 import HRDashboard from "./pages/HRDashboard";
+import InterviewerDashboard from "./pages/InterviewerDashboard";
 import CandidateLogin from "./pages/CandidateLogin";
 import CandidateDashboard from "./pages/CandidateDashboard";
 import Home from "./pages/Home";
@@ -75,7 +76,7 @@ function App() {
     }
 
 
-    // HIRING MANAGER DASHBOARD
+  // HIRING MANAGER DASHBOARD
 if (path === "/hiring-manager-dashboard") {
     const user = JSON.parse(
         localStorage.getItem("user") || "null"
@@ -86,9 +87,12 @@ if (path === "/hiring-manager-dashboard") {
         return null;
     }
 
-    return <HiringManagerDashboard/>;
+    return (
+        <HiringManagerDashboard
+            navigate={navigate}
+        />
+    );
 }
-
 // INTERVIEWER DASHBOARD
 if (path === "/interviewer-dashboard") {
     const user = JSON.parse(
@@ -100,7 +104,11 @@ if (path === "/interviewer-dashboard") {
         return null;
     }
 
-    return <div>Interviewer Dashboard</div>;
+    return (
+    <InterviewerDashboard
+        navigate={navigate}
+    />
+);
 }
 
 // SYSTEM ADMINISTRATOR DASHBOARD
