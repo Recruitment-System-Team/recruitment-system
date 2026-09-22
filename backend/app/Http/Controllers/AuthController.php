@@ -151,6 +151,14 @@ class AuthController extends Controller
             'email' => 'required|email',
             'password' => 'required|string',
         ]);
+        \Log::info('LOGIN DEBUG', [
+    'email' => $validated['email'],
+    'password_received' => !empty($validated['password']),
+    'password_length' => strlen($validated['password']),
+    'db_default' => config('database.default'),
+    'db_database' => config('database.connections.mysql.database'),
+    'app_url' => config('app.url'),
+]);
 
         /*
         |--------------------------------------------------------------------------
@@ -164,6 +172,15 @@ class AuthController extends Controller
         ])
             ->where('email', $validated['email'])
             ->first();
+            \Log::info('LOGIN USER DEBUG', [
+    'user_found' => (bool) $user,
+    'user_id' => $user?->id,
+    'role_id' => $user?->role_id,
+    'role_name' => $user?->role?->name,
+    'password_hash_exists' => !empty($user?->password),
+    'password_hash_length' => $user?->password ? strlen($user->password) : 0,
+    'hash_check' => $user ? Hash::check($validated['password'], $user->password) : false,
+]);
 
         if ($requiredRole && (!$user || $user->role?->name !== $requiredRole)) {
             return response()->json([
