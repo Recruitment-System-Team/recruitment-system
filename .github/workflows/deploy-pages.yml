@@ -35,6 +35,8 @@ jobs:
 
       - name: Build React app
         working-directory: frontend
+        env:
+         VITE_API_URL: https://recruitment-system-1pq9.onrender.com/api
         run: npm run build
 
       - name: Create SPA fallback
