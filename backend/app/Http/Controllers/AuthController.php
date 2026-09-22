@@ -196,17 +196,22 @@ class AuthController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if (
-            !$user ||
-            !Hash::check(
-                $validated['password'],
-                $user->password
-            )
-        ) {
-            return response()->json([
-                'message' => 'Invalid email or password.'
-            ], 401);
-        }
+        if (!$user) {
+    return response()->json([
+        'message' => 'DEBUG: User not found',
+        'email' => $validated['email'],
+    ], 401);
+}
+
+if (!Hash::check($validated['password'], $user->password)) {
+    return response()->json([
+        'message' => 'DEBUG: User found but password check failed',
+        'user_id' => $user->id,
+        'email' => $user->email,
+        'role_id' => $user->role_id,
+        'role_name' => $user->role?->name,
+    ], 401);
+}
 
         /*
         |--------------------------------------------------------------------------
