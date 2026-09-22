@@ -444,6 +444,12 @@ class InterviewController extends Controller
     /**
  * Move a candidate from Interview 1 to Interview 2.
  */
+/**
+ * Move a candidate from Interview 1 to Interview 2.
+ *
+ * Moving the candidate to Interview 2 also marks
+ * Interview 1 as passed.
+ */
 public function moveToInterviewTwo(Request $request)
 {
     $validated = $request->validate([
@@ -454,17 +460,36 @@ public function moveToInterviewTwo(Request $request)
         $validated['application_id']
     );
 
+    /*
+     * Mark the candidate as eligible for Interview 2.
+     */
     $application->selected_for_interview_two = true;
     $application->save();
 
+    /*
+     * Moving the candidate to Interview 2 means
+     * Interview 1 has been passed.
+     */
+    Interview::where(
+        'application_id',
+        $application->id
+    )
+        ->where(
+            'interview_number',
+            1
+        )
+        ->update([
+            'status' => 'passed',
+        ]);
+
     return response()->json([
-        'message' => 'Candidate has been moved to Interview 2.',
-        'application' => $application,
+        'message' =>
+            'Candidate has passed Interview 1 and has been moved to Interview 2.',
+
+        'application' =>
+            $application,
     ]);
-
-    
 }
-
 private function ensureInterviewParticipant(
     Interview $interview,
     User $user
@@ -597,4 +622,60 @@ public function storeMyFeedback(
             $feedback,
     ], 201);
 }
+
+/**
+ * Get all feedback submitted for an interview.
+ *
+ * Used by the Hiring Manager to review feedback
+ * from all interview participants.
+ */
+public function getAllFeedback(
+    Request $request,
+    $id
+) {
+    $interview = Interview::findOrFail($id);
+
+    $feedback = InterviewFeedback::with([
+        'interviewer',
+    ])
+        ->where(
+            'interview_id',
+            $interview->id
+        )
+        ->orderBy(
+            'created_at',
+            'asc'
+        )
+        ->get();
+
+    return response()->json([
+        'feedback' => $feedback,
+    ]);
+}
+
+/**
+ * Get feedback submitted by the current HR Manager.
+ */
+public function myFeedbacks(
+    Request $request
+) {
+    $feedback = InterviewFeedback::with([
+        'interview.application.candidate.user',
+        'interview.application.jobPosition',
+        'interviewer',
+    ])
+        ->where(
+            'interviewer_id',
+            $request->user()->id
+        )
+        ->orderByDesc(
+            'created_at'
+        )
+        ->get();
+
+    return response()->json([
+        'feedback' => $feedback,
+    ]);
+}
+
 }

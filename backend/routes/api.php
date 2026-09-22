@@ -178,6 +178,11 @@ Route::middleware('auth:sanctum')->group(function () {
             '/candidates/{id}',
             [CandidateController::class, 'show']
         );
+
+        Route::get(
+    '/interviews/my-feedbacks',
+    [InterviewController::class, 'myFeedbacks']
+);
     });
 
 
@@ -200,6 +205,17 @@ Route::middleware('auth:sanctum')->group(function () {
             '/applications/send-shortlisted-to-hr',
             [ApplicationController::class, 'sendShortlistedToHR']
         );
+
+         Route::get(
+        '/interviews/{id}/feedback/all',
+        [InterviewController::class, 'getAllFeedback']
+    );
+
+    Route::patch(
+        '/interviews/{id}/feedback',
+        [InterviewController::class, 'updateMyFeedback']
+    );
+
     });
 
 
@@ -360,6 +376,8 @@ Route::post(
     '/interviews/{id}/feedback',
     [InterviewController::class, 'storeMyFeedback']
 );
+
+
     
 
 });

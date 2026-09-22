@@ -6208,3 +6208,88 @@ background 0.2s ease,
 .interview-profile-footer .interview-schedule-button {
     color: #ffffff;
 }
+.my-feedback-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 950px;
+}
+
+.my-feedback-card {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 14px 20px;
+    padding: 18px;
+    border: 1px solid rgba(128, 128, 128, 0.18);
+    border-radius: 15px;
+    background: rgba(128, 128, 128, 0.05);
+}
+
+.my-feedback-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.my-feedback-avatar {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background:
+        linear-gradient(
+            135deg,
+            #1a0046,
+            #a955ff
+        );
+    color: white;
+    font-weight: 700;
+}
+
+.my-feedback-header h3 {
+    margin: 0 0 4px;
+    font-size: 14px;
+}
+
+.my-feedback-header p {
+    margin: 0;
+    color: rgba(128, 128, 128, 0.7);
+    font-size: 10px;
+}
+
+.my-feedback-date {
+    color: rgba(128, 128, 128, 0.7);
+    font-size: 10px;
+    text-align: right;
+}
+
+.my-feedback-content {
+    grid-column: 1 / -1;
+    padding: 14px;
+    border-radius: 12px;
+    background: rgba(128, 128, 128, 0.06);
+}
+
+.my-feedback-content span {
+    display: block;
+    margin-bottom: 7px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.3px;
+    color: #a955ff;
+}
+
+.my-feedback-content p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+}
+
+.my-feedback-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+}

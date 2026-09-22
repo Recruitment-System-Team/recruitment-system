@@ -188,7 +188,7 @@ const [selectedUser, setSelectedUser] = useState(null);
         window.history.pushState(
             {},
             "",
-            "/recruitment-system/staff-login"
+            "/recruitment-system/admin-dashboard"
         );
 
         window.dispatchEvent(

@@ -15,7 +15,17 @@ function HiringManagerDashboard() {
 
     const [selectedVacancyId, setSelectedVacancyId] = useState(null);
 const [selectedCandidate, setSelectedCandidate] = useState(null);
+const [interviews, setInterviews] = useState([]);
+const [selectedInterviewVacancyId, setSelectedInterviewVacancyId] =
+    useState(null);
+const [selectedInterview, setSelectedInterview] = useState(null);
 
+const [interviewFeedback, setInterviewFeedback] = useState([]);
+const [feedbackText, setFeedbackText] = useState("");
+
+const [feedbackLoading, setFeedbackLoading] = useState(false);
+const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+const [feedbackError, setFeedbackError] = useState("");
 const [openVacancies, setOpenVacancies] = useState({});
 
 /*
@@ -37,6 +47,7 @@ const [selectedForShortlist, setSelectedForShortlist] =
 
     useEffect(() => {
         fetchApplications();
+        fetchInterviews();
     }, []);
     useEffect(() => {
     localStorage.setItem(
@@ -116,6 +127,52 @@ const [selectedForShortlist, setSelectedForShortlist] =
     };
 
     /*
+ * ---------------------------------------------------------
+ * FETCH INTERVIEWS
+ * ---------------------------------------------------------
+ */
+
+const fetchInterviews = async () => {
+    try {
+        setError("");
+
+        const response = await fetch(
+            `${API_URL}/interviews`,
+            {
+                headers: {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                    "Unable to fetch interviews."
+            );
+        }
+
+        setInterviews(
+            Array.isArray(data)
+                ? data
+                : data.interviews || []
+        );
+    } catch (err) {
+        console.error(
+            "HIRING MANAGER INTERVIEWS ERROR:",
+            err
+        );
+
+        setError(
+            err.message ||
+                "Unable to load interviews."
+        );
+    }
+};
+    /*
      * ---------------------------------------------------------
      * GROUP APPLICATIONS BY VACANCY
      * ---------------------------------------------------------
@@ -192,13 +249,15 @@ const [selectedForShortlist, setSelectedForShortlist] =
      */
 
     const openVacancyCandidates = (vacancy) => {
-        setSelectedVacancyId(vacancy.id);
+    setSelectedInterviewVacancyId(null);
 
-        setOpenVacancies((current) => ({
-            ...current,
-            [vacancy.id]: true,
-        }));
-    };
+    setSelectedVacancyId(vacancy.id);
+
+    setOpenVacancies((current) => ({
+        ...current,
+        [vacancy.id]: true,
+    }));
+};
 
    /*
  * ---------------------------------------------------------
@@ -413,6 +472,202 @@ const handleViewCv = async (cvId) => {
     return vacancy?.title || "Untitled Vacancy";
 };
 
+/*
+ * ---------------------------------------------------------
+ * INTERVIEW HELPERS
+ * ---------------------------------------------------------
+ */
+
+const getInterviewCandidateName = (interview) => {
+    return (
+        interview?.application?.candidate?.user?.name ||
+        interview?.application?.candidate?.name ||
+        "Unknown Candidate"
+    );
+};
+
+const getInterviewNumber = (interview) => {
+    return Number(
+        interview?.interview_number || 1
+    );
+};
+
+const getInterviewDate = (interview) => {
+    if (!interview?.scheduled_date) {
+        return "Date not available";
+    }
+
+    return new Date(
+        interview.scheduled_date
+    ).toLocaleDateString();
+};
+
+const getInterviewVacancyId = (interview) => {
+    return (
+        interview?.application?.job_position_id ||
+        interview?.application?.jobPosition?.id ||
+        null
+    );
+};
+
+const getInterviewVacancyTitle = (interview) => {
+    return (
+        interview?.application?.job_position?.title ||
+        interview?.application?.jobPosition?.title ||
+        "Untitled Vacancy"
+    );
+};
+
+
+/*
+ * ---------------------------------------------------------
+ * OPEN INTERVIEW FEEDBACK
+ * ---------------------------------------------------------
+ */
+
+const openInterviewFeedback = async (interview) => {
+    setSelectedInterview(interview);
+
+    setInterviewFeedback([]);
+    setFeedbackText("");
+    setFeedbackError("");
+
+    try {
+        setFeedbackLoading(true);
+
+        const response = await fetch(
+            `${API_URL}/interviews/${interview.id}/feedback/all`,
+            {
+                headers: {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                    "Unable to load interview feedback."
+            );
+        }
+
+        const feedback =
+            data.feedback || [];
+
+        setInterviewFeedback(feedback);
+
+        /*
+         * Find the Hiring Manager's own
+         * feedback.
+         */
+        const ownFeedback =
+            feedback.find(
+                (item) =>
+                    Number(item.interviewer_id) ===
+                    Number(user?.id)
+            );
+
+        setFeedbackText(
+            ownFeedback?.feedback || ""
+        );
+    } catch (err) {
+        console.error(
+            "INTERVIEW FEEDBACK LOAD ERROR:",
+            err
+        );
+
+        setFeedbackError(
+            err.message ||
+                "Unable to load interview feedback."
+        );
+    } finally {
+        setFeedbackLoading(false);
+    }
+};
+
+
+/*
+ * ---------------------------------------------------------
+ * SUBMIT / UPDATE HIRING MANAGER FEEDBACK
+ * ---------------------------------------------------------
+ */
+const handleSubmitInterviewFeedback = async () => {
+    if (!selectedInterview) {
+        return;
+    }
+
+    if (!feedbackText.trim()) {
+        setFeedbackError(
+            "Please enter your interview feedback."
+        );
+        return;
+    }
+
+    const ownFeedback = interviewFeedback.find(
+        (item) =>
+            Number(item.interviewer_id) ===
+            Number(user?.id)
+    );
+
+    const hasOwnFeedback = Boolean(ownFeedback);
+
+    try {
+        setFeedbackSubmitting(true);
+        setFeedbackError("");
+
+        const response = await fetch(
+            `${API_URL}/interviews/${selectedInterview.id}/feedback`,
+            {
+                method: hasOwnFeedback
+                    ? "PATCH"
+                    : "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json",
+                    Accept:
+                        "application/json",
+                    Authorization:
+                        `Bearer ${token}`,
+                },
+
+                body: JSON.stringify({
+                    feedback:
+                        feedbackText.trim(),
+                }),
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                    "Unable to save feedback."
+            );
+        }
+
+        await openInterviewFeedback(
+            selectedInterview
+        );
+    } catch (err) {
+        console.error(
+            "HIRING MANAGER FEEDBACK ERROR:",
+            err
+        );
+
+        setFeedbackError(
+            err.message ||
+                "Unable to save feedback."
+        );
+    } finally {
+        setFeedbackSubmitting(false);
+    }
+};
+
     const getScore = (application) => {
         const score = Number(
             application?.match_score
@@ -454,6 +709,41 @@ const handleViewCv = async (cvId) => {
                 letter.toUpperCase()
             );
     };
+
+
+    /*
+ * ---------------------------------------------------------
+ * INTERVIEW VACANCIES
+ * ---------------------------------------------------------
+ */
+
+const interviewVacancies = useMemo(() => {
+    const grouped = {};
+
+    interviews.forEach((interview) => {
+        const vacancyId =
+            getInterviewVacancyId(interview);
+
+        if (!vacancyId) return;
+
+        if (!grouped[vacancyId]) {
+            grouped[vacancyId] = {
+                id: vacancyId,
+                title:
+                    getInterviewVacancyTitle(
+                        interview
+                    ),
+                interviews: [],
+            };
+        }
+
+        grouped[vacancyId].interviews.push(
+            interview
+        );
+    });
+
+    return Object.values(grouped);
+}, [interviews]);
 
     /*
      * ---------------------------------------------------------
@@ -655,33 +945,117 @@ const handleViewCv = async (cvId) => {
                     </div>
 
                     {/* INTERVIEW */}
+{/* INTERVIEW */}
 
-                    <div className="hiring-menu-section hiring-interview-section">
+<div className="hiring-menu-section hiring-interview-section">
 
-                        <div className="hiring-menu-title">
-                            INTERVIEW
-                        </div>
+    <div className="hiring-menu-title">
+        INTERVIEW
+    </div>
 
-                        <button
-                            type="button"
-                            className="hiring-navigation-item hiring-interview-nav"
-                            onClick={() => {
-                                setSelectedVacancyId(
-                                    null
-                                );
-                            }}
+    {interviewVacancies.length === 0 ? (
+        <div className="hiring-no-vacancies">
+            No interviews
+        </div>
+    ) : (
+        <div className="hiring-vacancy-list">
+
+            {interviewVacancies.map(
+                (vacancy) => {
+
+                    const isOpen =
+                        selectedInterviewVacancyId ===
+                        vacancy.id;
+
+                    return (
+                        <div
+                            className="hiring-vacancy-group"
+                            key={vacancy.id}
                         >
-                            <span className="hiring-navigation-icon">
-                                ◷
-                            </span>
 
-                            <span className="hiring-navigation-text">
-                                Interviews
-                            </span>
-                        </button>
+                            <button
+                                type="button"
+                                className={`hiring-navigation-item ${
+                                    isOpen
+                                        ? "active"
+                                        : ""
+                                }`}
+                                onClick={() => {
+                                    setSelectedVacancyId(
+                                        null
+                                    );
 
-                    </div>
+                                    setSelectedInterviewVacancyId(
+                                        isOpen
+                                            ? null
+                                            : vacancy.id
+                                    );
+                                }}
+                            >
 
+                                <span className="hiring-navigation-icon">
+                                    ◷
+                                </span>
+
+                                <span className="hiring-navigation-text">
+                                    {
+                                        vacancy.title
+                                    }
+                                </span>
+
+                                <span
+                                    className={`hiring-navigation-arrow ${
+                                        isOpen
+                                            ? "open"
+                                            : ""
+                                    }`}
+                                >
+                                    ›
+                                </span>
+
+                            </button>
+
+                            {isOpen && (
+                                <div className="hiring-vacancy-submenu">
+
+                                    <button
+                                        type="button"
+                                        className="hiring-candidates-subitem active"
+                                        onClick={() => {
+                                            setSelectedVacancyId(
+                                                null
+                                            );
+
+                                            setSelectedInterviewVacancyId(
+                                                vacancy.id
+                                            );
+                                        }}
+                                    >
+                                        <span>
+                                            Interviews
+                                        </span>
+
+                                        <span className="hiring-candidate-count">
+                                            {
+                                                vacancy
+                                                    .interviews
+                                                    .length
+                                            }
+                                        </span>
+                                    </button>
+
+                                </div>
+                            )}
+
+                        </div>
+                    );
+                }
+            )}
+
+        </div>
+    )}
+
+</div>
                 </div>
 
                 {/* SIDEBAR FOOTER */}
@@ -823,27 +1197,147 @@ const handleViewCv = async (cvId) => {
                         EMPTY STATE
                     ================================================= */}
 
-                    {!selectedVacancy ? (
-                        <div className="hiring-empty-state">
+                    {selectedInterviewVacancyId ? (
+    <>
+        {/* INTERVIEW CONTENT */}
 
-                            <div className="hiring-empty-icon">
-                                ◫
+        {(() => {
+            const currentInterviewVacancy =
+                interviewVacancies.find(
+                    (vacancy) =>
+                        vacancy.id ===
+                        selectedInterviewVacancyId
+                );
+
+            return (
+                <>
+                    <div className="hiring-page-header">
+
+                        <div>
+                            <div className="hiring-eyebrow">
+                                INTERVIEW STAGE
                             </div>
 
-                            <h2>
-                                No Vacancy Selected
-                            </h2>
+                            <h1>
+                                {currentInterviewVacancy?.title ||
+                                    "Interviews"}
+                            </h1>
 
                             <p>
-                                Select a vacancy from
-                                Job Postings to view
-                                the candidates sent
-                                for secondary
-                                shortlisting.
+                                View interview
+                                candidates and
+                                review all submitted
+                                interview feedback.
                             </p>
+                        </div>
+
+                    </div>
+
+                    <section className="hiring-content-card">
+
+                        <div className="hiring-section-header">
+
+                            <div>
+                                <h2>
+                                    Interviews
+                                </h2>
+
+                                <p>
+                                    {
+                                        currentInterviewVacancy
+                                            ?.interviews
+                                            ?.length || 0
+                                    }{" "}
+                                    interview
+                                    candidate(s)
+                                </p>
+                            </div>
 
                         </div>
-                    ) : (
+
+                        <div className="hiring-candidate-list">
+
+                            {currentInterviewVacancy?.interviews?.map(
+                                (interview) => (
+                                    <article
+                                        className="hiring-candidate-card"
+                                        key={interview.id}
+                                    >
+
+                                        <div className="hiring-candidate-avatar">
+                                            {getInitials(
+                                                getInterviewCandidateName(
+                                                    interview
+                                                )
+                                            )}
+                                        </div>
+
+                                        <div className="hiring-candidate-body">
+
+                                            <div className="hiring-candidate-header">
+
+                                                <div>
+                                                    <h3 className="hiring-candidate-name">
+                                                        {
+                                                            getInterviewCandidateName(
+                                                                interview
+                                                            )
+                                                        }
+                                                    </h3>
+
+                                                    <p className="hiring-candidate-email">
+                                                        Interview{" "}
+                                                        {
+                                                            getInterviewNumber(
+                                                                interview
+                                                            )
+                                                        }{" "}
+                                                        ·{" "}
+                                                        {
+                                                            getInterviewDate(
+                                                                interview
+                                                            )
+                                                        }
+                                                    </p>
+                                                </div>
+
+                                            </div>
+
+                                           <div className="hiring-candidate-actions">
+
+    <button
+    type="button"
+    className="hiring-secondary-button"
+    onClick={() => {
+        const application =
+            interview.application;
+
+        if (application) {
+            setSelectedCandidate(application);
+
+            setSelectedInterview(interview);
+
+            openInterviewFeedback(interview);
+        }
+    }}
+>
+    View Profile
+</button>
+</div>
+                                        </div>
+
+                                    </article>
+                                )
+                            )}
+
+                        </div>
+
+                    </section>
+                </>
+            );
+        })()}
+    </>
+) : selectedVacancy ? (
                         <>
                             {/* SUMMARY */}
 
@@ -945,6 +1439,7 @@ const handleViewCv = async (cvId) => {
         Send Shortlisted Candidates to HR
         {selectedForShortlist.length > 0 &&
             ` (${selectedForShortlist.length})`}
+
     </button>
 
 </div>
@@ -1136,6 +1631,21 @@ const alreadySentToHR =
 
                             </section>
                         </>
+                                        ) : (
+                        <div className="hiring-empty-state">
+                            <div className="hiring-empty-state-icon">
+                                ⌂
+                            </div>
+
+                            <h2>
+                                Select a vacancy
+                            </h2>
+
+                            <p>
+                                Select a vacancy from the
+                                sidebar to view its candidates.
+                            </p>
+                        </div>
                     )}
 
                 </div>
@@ -1151,29 +1661,33 @@ const alreadySentToHR =
                     className="hiring-modal-overlay"
                     onClick={(event) => {
                         if (
-                            event.target ===
-                            event.currentTarget
-                        ) {
-                            setSelectedCandidate(
-                                null
-                            );
-                        }
+    event.target ===
+    event.currentTarget
+) {
+    setSelectedCandidate(null);
+    setSelectedInterview(null);
+    setInterviewFeedback([]);
+    setFeedbackText("");
+    setFeedbackError("");
+}
                     }}
                 >
 
                     <div className="hiring-modal">
 
                         <button
-                            type="button"
-                            className="hiring-modal-close"
-                            onClick={() =>
-                                setSelectedCandidate(
-                                    null
-                                )
-                            }
-                        >
-                            ×
-                        </button>
+    type="button"
+    className="hiring-modal-close"
+    onClick={() => {
+        setSelectedCandidate(null);
+        setSelectedInterview(null);
+        setInterviewFeedback([]);
+        setFeedbackText("");
+        setFeedbackError("");
+    }}
+>
+    ×
+</button>
 
                         <div className="hiring-modal-header">
 
@@ -1314,19 +1828,184 @@ const alreadySentToHR =
 
                         </div>
 
+
+{/* =================================================
+    INTERVIEW FEEDBACK
+================================================= */}
+
+{selectedInterview && (
+    <div className="hiring-profile-feedback">
+
+        <div className="hiring-profile-feedback-header">
+            <div>
+                <span className="hiring-modal-eyebrow">
+                    INTERVIEW FEEDBACK
+                </span>
+
+                <h3>
+                    Interview{" "}
+                    {getInterviewNumber(
+                        selectedInterview
+                    )}
+                </h3>
+
+                <p>
+                    {getInterviewDate(
+                        selectedInterview
+                    )}
+                </p>
+            </div>
+        </div>
+
+        {feedbackLoading ? (
+            <div className="feedback-loading">
+                Loading feedback...
+            </div>
+        ) : (
+            <>
+                <div className="hiring-feedback-list">
+
+                    {interviewFeedback.length === 0 ? (
+                        <div className="hiring-empty-list">
+                            No feedback has been
+                            submitted yet.
+                        </div>
+                    ) : (
+                        interviewFeedback.map(
+                            (feedback) => {
+
+                                const isOwnFeedback =
+                                    Number(
+                                        feedback.interviewer_id
+                                    ) ===
+                                    Number(user?.id);
+
+                                return (
+                                    <div
+                                        className="hiring-feedback-item"
+                                        key={
+                                            feedback.id
+                                        }
+                                    >
+
+                                        <div className="hiring-feedback-header">
+
+                                            <strong>
+                                                {feedback
+                                                    ?.interviewer
+                                                    ?.name ||
+                                                    "Staff Member"}
+                                            </strong>
+
+                                            <span>
+                                                {isOwnFeedback
+                                                    ? "Your Feedback"
+                                                    : "Submitted Feedback"}
+                                            </span>
+
+                                        </div>
+
+                                        <p>
+                                            {
+                                                feedback.feedback
+                                            }
+                                        </p>
+
+                                        {feedback.created_at && (
+                                            <small>
+                                                Submitted{" "}
+                                                {new Date(
+                                                    feedback.created_at
+                                                ).toLocaleDateString()}
+                                            </small>
+                                        )}
+
+                                    </div>
+                                );
+                            }
+                        )
+                    )}
+
+                </div>
+
+                {/* HIRING MANAGER OWN FEEDBACK */}
+
+                <div className="hiring-own-feedback">
+
+                    <label>
+                        Your Interview Feedback
+                    </label>
+
+                    <p className="feedback-help">
+                        Add or update your own
+                        interview assessment.
+                        Feedback submitted by
+                        other staff members is
+                        view-only.
+                    </p>
+
+                    <textarea
+                        rows="7"
+                        value={feedbackText}
+                        onChange={(event) =>
+                            setFeedbackText(
+                                event.target.value
+                            )
+                        }
+                        placeholder="Enter your interview assessment..."
+                    />
+
+                    {feedbackError && (
+                        <div className="feedback-error">
+                            {feedbackError}
+                        </div>
+                    )}
+
+                    <button
+                        type="button"
+                        className="hiring-primary-button"
+                        disabled={
+                            feedbackSubmitting
+                        }
+                        onClick={
+                            handleSubmitInterviewFeedback
+                        }
+                    >
+                        {feedbackSubmitting
+                            ? "Saving..."
+                            : interviewFeedback.some(
+                                  (feedback) =>
+                                      Number(
+                                          feedback.interviewer_id
+                                      ) ===
+                                      Number(user?.id)
+                              )
+                            ? "Update My Feedback"
+                            : "Add My Feedback"}
+                    </button>
+
+                </div>
+            </>
+        )}
+
+    </div>
+)}
+
                         <div className="hiring-modal-actions">
 
                             <button
-                                type="button"
-                                className="hiring-secondary-button"
-                                onClick={() =>
-                                    setSelectedCandidate(
-                                        null
-                                    )
-                                }
-                            >
-                                Close
-                            </button>
+    type="button"
+    className="hiring-secondary-button"
+    onClick={() => {
+        setSelectedCandidate(null);
+        setSelectedInterview(null);
+        setInterviewFeedback([]);
+        setFeedbackText("");
+        setFeedbackError("");
+    }}
+>
+    Close
+</button>
 
                             {selectedCandidate &&
     !(
@@ -1361,8 +2040,12 @@ const alreadySentToHR =
                 </div>
             )}
 
+
         </div>
     );
+
+
+    
 }
 
 export default HiringManagerDashboard;

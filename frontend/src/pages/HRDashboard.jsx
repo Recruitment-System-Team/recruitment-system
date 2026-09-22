@@ -133,6 +133,12 @@ const [selectedInterviewProfileNumber, setSelectedInterviewProfileNumber] =
 
 const [interviewProfileStatus, setInterviewProfileStatus] =
     useState("interview");
+
+    const [myFeedbacks, setMyFeedbacks] =
+    useState([]);
+
+const [myFeedbacksLoading, setMyFeedbacksLoading] =
+    useState(false);
     // =========================================================
     // NAVIGATION
     // =========================================================
@@ -1399,7 +1405,48 @@ const handleViewCv = async (cv) => {
             setStatusUpdating(false);
         }
     };
+const fetchMyFeedbacks = async () => {
+    try {
+        setMyFeedbacksLoading(true);
 
+        const response = await fetch(
+            `${API_URL}/interviews/my-feedbacks`,
+            {
+                headers: {
+                    Accept: "application/json",
+                    Authorization:
+                        `Bearer ${token}`,
+                },
+            }
+        );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                    "Unable to load your feedback."
+            );
+        }
+
+        setMyFeedbacks(
+            data.feedback || []
+        );
+    } catch (error) {
+        console.error(
+            "MY FEEDBACKS ERROR:",
+            error
+        );
+
+        setError(
+            error.message ||
+                "Unable to load your feedback."
+        );
+    } finally {
+        setMyFeedbacksLoading(false);
+    }
+};
     // =========================================================
     // LOGOUT
     // =========================================================
@@ -1482,6 +1529,15 @@ const handleViewCv = async (cv) => {
 
          loadInterviewData();
     };
+
+    const goToMyFeedbacks = () => {
+    setActiveSection("my-feedbacks");
+    setActiveVacancyId(null);
+    setSelectedVacancy(null);
+    setSelectedCandidate(null);
+
+    fetchMyFeedbacks();
+};
 // =========================================================
 // INTERVIEW DATA
 // =========================================================
@@ -1765,6 +1821,69 @@ const fetchInterviewerAvailability = async (
     }
 };
 
+const checkSelectedInterviewerAvailability = async (
+    interviewer,
+    date
+) => {
+    if (!interviewer || !date) {
+        return {
+            connected: false,
+            available: false,
+            suggested_time: null,
+        };
+    }
+
+    try {
+        const token =
+            localStorage.getItem("token");
+
+        const response = await fetch(
+            `${API_URL}/interviews/interviewer-availability?user_id=${interviewer.id}&date=${date}`,
+            {
+                headers: {
+                    Accept: "application/json",
+                    Authorization:
+                        `Bearer ${token}`,
+                },
+            }
+        );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            return {
+                connected: data.connected === true,
+                available: false,
+                suggested_time: null,
+            };
+        }
+
+        return {
+            connected:
+                data.connected === true,
+
+            available:
+                data.available === true,
+
+            suggested_time:
+                data.suggested_time ||
+                null,
+        };
+    } catch (error) {
+        console.error(
+            "SELECTED INTERVIEWER AVAILABILITY ERROR:",
+            interviewer.name,
+            error
+        );
+
+        return {
+            connected: false,
+            available: false,
+            suggested_time: null,
+        };
+    }
+};
 
 useEffect(() => {
     if (interviewOneDate) {
@@ -1894,18 +2013,18 @@ const handleScheduleInterview = async (
                 return;
             }
 
-            if (!isStaffAvailable(selectedTechLead)) {
-                alert(
-                    "The selected Tech Lead is no longer available."
-                );
-                return;
-            }
-
-            if (
-                !isStaffAvailable(
-                    selectedSeniorEngineer
-                )
-            ) {
+            if (!isStaffAvailable(selectedTechLead, 1)) {
+    alert(
+        "The selected Tech Lead is no longer available."
+    );
+    return;
+}
+if (
+    !isStaffAvailable(
+        selectedSeniorEngineer,
+        1
+    )
+) {
                 alert(
                     "The selected Senior Software Engineer is no longer available."
                 );
@@ -1924,7 +2043,7 @@ const handleScheduleInterview = async (
                 return;
             }
 
-            if (!isStaffAvailable(selectedHRManager)) {
+            if (!isStaffAvailable(selectedHRManager,2)) {
                 alert(
                     "The HR Manager is not available on this date."
                 );
@@ -1933,7 +2052,8 @@ const handleScheduleInterview = async (
 
             if (
                 !isStaffAvailable(
-                    selectedHiringManager
+                    selectedHiringManager,
+                    2
                 )
             ) {
                 alert(
@@ -1959,11 +2079,13 @@ const handleScheduleInterview = async (
             scheduled_time:
                 interviewNumber === 1
                     ? getAvailabilityInfo(
-                          selectedTechLead
+                          selectedTechLead,
+                          1
                       )?.suggested_time ||
                       "09:00"
                     : getAvailabilityInfo(
-                          selectedHRManager
+                          selectedHRManager,
+                          2
                       )?.suggested_time ||
                       "09:00",
         };
@@ -2410,6 +2532,23 @@ const loadInterviewData = async () => {
                         <span>✓</span>
                         Interview
                     </button>
+
+                    <button
+    type="button"
+    className={`menu-item ${
+        activeSection ===
+        "my-feedbacks"
+            ? "active"
+            : ""
+    }`}
+    onClick={
+        goToMyFeedbacks
+    }
+>
+    <span>✎</span>
+    My Feedbacks
+</button>
+
                 </div>
 
                 {/* PROFILE */}
@@ -4383,6 +4522,183 @@ const loadInterviewData = async () => {
                     </div>
 
                 </div>
+
+            </div>
+        )}
+
+    </section>
+)}
+
+{/* =================================================
+    MY FEEDBACKS
+================================================= */}
+
+{activeSection === "my-feedbacks" && (
+    <section className="dashboard-section">
+
+        <div className="page-header">
+
+            <div>
+                <p className="page-eyebrow">
+                    INTERVIEW
+                </p>
+
+                <h1>
+                    My Feedbacks
+                </h1>
+
+                <p className="page-description">
+                    Review the interview feedback
+                    you have submitted and update
+                    your own assessments.
+                </p>
+            </div>
+
+        </div>
+
+        {myFeedbacksLoading ? (
+            <div className="loading-message">
+                Loading your feedback...
+            </div>
+        ) : myFeedbacks.length === 0 ? (
+            <div className="empty-vacancy-card">
+
+                <h2>
+                    No Feedback Yet
+                </h2>
+
+                <p>
+                    Feedback you submit during
+                    interviews will appear here.
+                </p>
+
+            </div>
+        ) : (
+            <div className="my-feedback-list">
+
+                {myFeedbacks.map(
+                    (feedback) => {
+
+                        const interview =
+                            feedback.interview;
+
+                        const application =
+                            interview?.application;
+
+                        const candidateName =
+                            application
+                                ?.candidate
+                                ?.user
+                                ?.name ||
+                            application
+                                ?.candidate
+                                ?.name ||
+                            "Unknown Candidate";
+
+                        const vacancyTitle =
+                            application
+                                ?.jobPosition
+                                ?.title ||
+                            application
+                                ?.job_position
+                                ?.title ||
+                            "Untitled Vacancy";
+
+                        return (
+                            <div
+                                className="my-feedback-card"
+                                key={
+                                    feedback.id
+                                }
+                            >
+
+                                <div className="my-feedback-header">
+
+                                    <div className="my-feedback-avatar">
+                                        {candidateName
+                                            .charAt(0)
+                                            .toUpperCase()}
+                                    </div>
+
+                                    <div>
+
+                                        <h3>
+                                            {
+                                                candidateName
+                                            }
+                                        </h3>
+
+                                        <p>
+                                            Interview{" "}
+                                            {
+                                                interview
+                                                    ?.interview_number ||
+                                                1
+                                            }{" "}
+                                            ·{" "}
+                                            {
+                                                vacancyTitle
+                                            }
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+                                <div className="my-feedback-date">
+                                    {interview
+                                        ?.scheduled_date
+                                        ? new Date(
+                                              interview.scheduled_date
+                                          ).toLocaleDateString()
+                                        : "Date not available"}
+                                </div>
+
+                                <div className="my-feedback-content">
+
+                                    <span>
+                                        MY FEEDBACK
+                                    </span>
+
+                                    <p>
+                                        {
+                                            feedback.feedback
+                                        }
+                                    </p>
+
+                                </div>
+
+                                <div className="my-feedback-actions">
+
+                                    <button
+                                        type="button"
+                                        className="interview-link-button"
+                                        onClick={() => {
+
+                                            if (
+                                                application
+                                            ) {
+                                                openInterviewProfile(
+                                                    application,
+                                                    Number(
+                                                        interview
+                                                            ?.interview_number ||
+                                                        1
+                                                    )
+                                                );
+                                            }
+
+                                        }}
+                                    >
+                                        View / Edit Feedback
+                                    </button>
+
+                                </div>
+
+                            </div>
+                        );
+                    }
+                )}
 
             </div>
         )}
