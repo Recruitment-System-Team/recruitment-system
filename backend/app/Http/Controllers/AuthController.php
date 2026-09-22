@@ -199,18 +199,28 @@ class AuthController extends Controller
         if (!$user) {
     $connection = DB::connection();
 
-    $staffUsers = $connection->table('users')
-        ->whereIn('email', [
-            'hr@test.com',
-            'hiring@test.com',
-            'interviewer@test.com',
-            'admin@test.com',
-        ])
+    $serverInfo = $connection->selectOne(
+        'SELECT DATABASE() as database_name, @@hostname as hostname'
+    );
+
+    $allUsers = $connection->table('users')
         ->get([
             'id',
             'email',
             'role_id',
         ]);
+
+    return response()->json([
+        'message' => 'DEBUG: User not found',
+        'database' => $connection->getDatabaseName(),
+        'configured_host' => config('database.connections.mysql.host'),
+        'configured_port' => config('database.connections.mysql.port'),
+        'server_database' => $serverInfo->database_name ?? null,
+        'server_hostname' => $serverInfo->hostname ?? null,
+        'users_count' => $connection->table('users')->count(),
+        'all_users' => $allUsers,
+    ], 401);
+}
 
     return response()->json([
         'message' => 'DEBUG: User not found',
