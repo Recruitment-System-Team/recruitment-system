@@ -11,15 +11,46 @@ class HrTestUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $role = Role::where('name', 'HR Manager')->firstOrFail();
+        $testPassword = env('TEST_STAFF_PASSWORD');
 
-        User::updateOrCreate(
-            ['email' => 'hr@example.com'],
+        if (!$testPassword) {
+            throw new \RuntimeException('TEST_STAFF_PASSWORD is not set.');
+        }
+
+        $staffUsers = [
             [
-                'name' => 'Sarah Perera',
-                'password' => Hash::make('HRTest123!'),
-                'role_id' => $role->id,
-            ]
-        );
+                'name' => 'Test HR Manager',
+                'email' => 'hr@test.com',
+                'role' => 'HR Manager',
+            ],
+            [
+                'name' => 'Test Hiring Manager',
+                'email' => 'hiring@test.com',
+                'role' => 'Hiring Manager',
+            ],
+            [
+                'name' => 'Test Interviewer',
+                'email' => 'interviewer@test.com',
+                'role' => 'Interviewer',
+            ],
+            [
+                'name' => 'Test System Administrator',
+                'email' => 'admin@test.com',
+                'role' => 'System Administrator',
+            ],
+        ];
+
+        foreach ($staffUsers as $staff) {
+            $role = Role::where('name', $staff['role'])->firstOrFail();
+
+            User::updateOrCreate(
+                ['email' => $staff['email']],
+                [
+                    'name' => $staff['name'],
+                    'password' => Hash::make($testPassword),
+                    'role_id' => $role->id,
+                ]
+            );
+        }
     }
 }

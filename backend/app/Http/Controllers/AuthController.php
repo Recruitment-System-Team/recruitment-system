@@ -151,14 +151,7 @@ class AuthController extends Controller
             'email' => 'required|email',
             'password' => 'required|string',
         ]);
-        \Log::info('LOGIN DEBUG', [
-    'email' => $validated['email'],
-    'password_received' => !empty($validated['password']),
-    'password_length' => strlen($validated['password']),
-    'db_default' => config('database.default'),
-    'db_database' => config('database.connections.mysql.database'),
-    'app_url' => config('app.url'),
-]);
+        
 
         /*
         |--------------------------------------------------------------------------
@@ -172,15 +165,7 @@ class AuthController extends Controller
         ])
             ->where('email', $validated['email'])
             ->first();
-            \Log::info('LOGIN USER DEBUG', [
-    'user_found' => (bool) $user,
-    'user_id' => $user?->id,
-    'role_id' => $user?->role_id,
-    'role_name' => $user?->role?->name,
-    'password_hash_exists' => !empty($user?->password),
-    'password_hash_length' => $user?->password ? strlen($user->password) : 0,
-    'hash_check' => $user ? Hash::check($validated['password'], $user->password) : false,
-]);
+            
 
         if ($requiredRole && (!$user || $user->role?->name !== $requiredRole)) {
             return response()->json([
@@ -196,38 +181,17 @@ class AuthController extends Controller
         |--------------------------------------------------------------------------
         */
 
-
-
-if (!$user) {
-    $connection = DB::connection();
-
-    $allUsers = $connection->table('users')
-        ->get([
-            'id',
-            'email',
-            'role_id',
-        ]);
-
+if (
+    !$user ||
+    !Hash::check(
+        $validated['password'],
+        $user->password
+    )
+) {
     return response()->json([
-        'message' => 'DEBUG: User not found',
-        'database' => $connection->getDatabaseName(),
-        'configured_host' => config('database.connections.mysql.host'),
-        'configured_port' => config('database.connections.mysql.port'),
-        'users_count' => $connection->table('users')->count(),
-        'all_users' => $allUsers,
+        'message' => 'Invalid email or password.'
     ], 401);
 }
-
-if (!Hash::check($validated['password'], $user->password)) {
-    return response()->json([
-        'message' => 'DEBUG: User found but password check failed',
-        'user_id' => $user->id,
-        'email' => $user->email,
-        'role_id' => $user->role_id,
-        'role_name' => $user->role?->name,
-    ], 401);
-}
-
         /*
         |--------------------------------------------------------------------------
         | 4. Create Sanctum token
