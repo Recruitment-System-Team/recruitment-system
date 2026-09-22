@@ -197,9 +197,27 @@ class AuthController extends Controller
         */
 
         if (!$user) {
+    $connection = DB::connection();
+
+    $staffUsers = $connection->table('users')
+        ->whereIn('email', [
+            'hr@test.com',
+            'hiring@test.com',
+            'interviewer@test.com',
+            'admin@test.com',
+        ])
+        ->get([
+            'id',
+            'email',
+            'role_id',
+        ]);
+
     return response()->json([
         'message' => 'DEBUG: User not found',
         'email' => $validated['email'],
+        'database' => $connection->getDatabaseName(),
+        'staff_users_found' => $staffUsers,
+        'users_count' => $connection->table('users')->count(),
     ], 401);
 }
 
