@@ -6977,3 +6977,57 @@ background 0.2s ease,
 .interview-two-head > div:nth-child(4) {
     text-align: left;
 }
+
+.hr-feedback-entry {
+    margin-top: 24px;
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.hr-feedback-entry-header {
+    margin-bottom: 14px;
+}
+
+.hr-feedback-entry-header h3 {
+    margin: 4px 0 0;
+}
+
+.hr-feedback-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(128, 128, 128, 0.3);
+    background: inherit;
+    color: inherit;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.hr-feedback-textarea:focus {
+    outline: none;
+    border-color: #8b5cf6;
+}
+
+.candidate-feedback-submit-button {
+    margin-top: 12px;
+    padding: 11px 18px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.candidate-feedback-submit-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.candidate-feedback-submitted {
+    margin-top: 12px;
+    font-size: 14px;
+    opacity: 0.75;
+}

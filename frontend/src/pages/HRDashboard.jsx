@@ -5837,80 +5837,160 @@ setSelectedHiringManager(null);
 
                     [1, 2].map((interviewNumber) => {
 
-                        const interviewFeedback =
-                            candidateFeedbacks.filter(
-                                (item) =>
-                                    Number(
-                                        item.interview_number
-                                    ) === interviewNumber
-                            );
+    const interviewFeedback =
+        candidateFeedbacks.filter(
+            (item) =>
+                Number(item.interview_number) ===
+                interviewNumber
+        );
 
-                        return (
-                            <div
-                                className="candidate-feedback-stage"
-                                key={interviewNumber}
-                            >
+    return (
+        <div
+            className="candidate-feedback-stage"
+            key={interviewNumber}
+        >
 
-                                <div className="candidate-feedback-stage-heading">
-                                    <span>
-                                        INTERVIEW {interviewNumber}
-                                    </span>
+            <div className="candidate-feedback-stage-heading">
+                <span>
+                    INTERVIEW {interviewNumber}
+                </span>
+            </div>
+
+            {interviewFeedback.length === 0 ? (
+
+                <div className="candidate-feedback-no-entry">
+                    No feedback submitted yet.
+                </div>
+
+            ) : (
+
+                interviewFeedback.map((item) => (
+
+                    <div
+                        className="candidate-feedback-card"
+                        key={item.id}
+                    >
+
+                        <div className="candidate-feedback-card-header">
+
+                            <div>
+                                <h3>
+                                    {item.interviewer?.name ||
+                                        "Interview Participant"}
+                                </h3>
+
+                                <span>
+                                    {item.interviewer?.position ||
+                                        "Staff"}
+                                </span>
+                            </div>
+
+                            {item.created_at && (
+                                <time>
+                                    {new Date(
+                                        item.created_at
+                                    ).toLocaleDateString()}
+                                </time>
+                            )}
+
+                        </div>
+
+                        <div className="candidate-feedback-text">
+                            {item.feedback}
+                        </div>
+
+                    </div>
+
+                ))
+
+            )}
+
+            {/* ==========================================
+                HR FEEDBACK - INTERVIEW 2 ONLY
+            ========================================== */}
+
+            {interviewNumber === 2 && (
+                <div className="hr-feedback-entry">
+
+                    <div className="hr-feedback-entry-header">
+                        <div>
+                            <span className="candidate-feedback-eyebrow">
+                                HR ASSESSMENT
+                            </span>
+
+                            <h3>
+                                Your Interview 2 Feedback
+                            </h3>
+                        </div>
+                    </div>
+
+                    {interviewFeedbackLoading ? (
+
+                        <div className="candidate-feedback-state">
+                            Loading your feedback...
+                        </div>
+
+                    ) : (
+
+                        <>
+                            <textarea
+                                className="hr-feedback-textarea"
+                                value={interviewFeedbackText}
+                                onChange={(e) =>
+                                    setInterviewFeedbackText(
+                                        e.target.value
+                                    )
+                                }
+                                placeholder="Enter your interview feedback..."
+                                rows={6}
+                                disabled={
+                                    interviewFeedbackSubmitting ||
+                                    !!existingInterviewFeedback
+                                }
+                            />
+
+                            {interviewFeedbackError && (
+                                <div className="candidate-feedback-error">
+                                    {interviewFeedbackError}
+                                </div>
+                            )}
+
+                            {existingInterviewFeedback ? (
+
+                                <div className="candidate-feedback-submitted">
+                                    ✓ Your feedback has already been
+                                    submitted for this interview.
                                 </div>
 
-                                {interviewFeedback.length === 0 ? (
+                            ) : (
 
-                                    <div className="candidate-feedback-no-entry">
-                                        No feedback submitted yet.
-                                    </div>
+                                <button
+                                    type="button"
+                                    className="candidate-feedback-submit-button"
+                                    onClick={
+                                        handleSubmitInterviewFeedback
+                                    }
+                                    disabled={
+                                        interviewFeedbackSubmitting ||
+                                        !interviewFeedbackText.trim()
+                                    }
+                                >
+                                    {interviewFeedbackSubmitting
+                                        ? "Submitting..."
+                                        : "Submit Feedback"}
+                                </button>
 
-                                ) : (
+                            )}
+                        </>
 
-                                    interviewFeedback.map(
-                                        (item) => (
+                    )}
 
-                                            <div
-                                                className="candidate-feedback-card"
-                                                key={item.id}
-                                            >
+                </div>
+            )}
 
-                                                <div className="candidate-feedback-card-header">
-
-                                                    <div>
-                                                        <h3>
-                                                            {item.interviewer?.name ||
-                                                                "Interview Participant"}
-                                                        </h3>
-
-                                                        <span>
-                                                            {item.interviewer?.position ||
-                                                                "Staff"}
-                                                        </span>
-                                                    </div>
-
-                                                    {item.created_at && (
-                                                        <time>
-                                                            {new Date(
-                                                                item.created_at
-                                                            ).toLocaleDateString()}
-                                                        </time>
-                                                    )}
-
-                                                </div>
-
-                                                <div className="candidate-feedback-text">
-                                                    {item.feedback}
-                                                </div>
-
-                                            </div>
-
-                                        )
-                                    )
-
-                                )}
-
-                            </div>
-                        );
-                    })
+        </div>
+    );
+})
 
                 )}
 

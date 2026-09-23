@@ -115,6 +115,7 @@ class CvController extends Controller
             'public'
         );
 
+        
         /*
         |--------------------------------------------------------------------------
         | 8. Create CV database record
@@ -128,7 +129,11 @@ class CvController extends Controller
             'file_type' => $file->getClientMimeType(),
             'extracted_text' => null,
             'processing_status' => 'pending',
+
+            
         ]);
+
+        
 
         /*
         |--------------------------------------------------------------------------
@@ -223,8 +228,11 @@ class CvController extends Controller
                     'processing_status' => 'failed',
                 ]);
             }
+
+            
         }
 
+        
         /*
         |--------------------------------------------------------------------------
         | 10. Reload CV
@@ -375,4 +383,29 @@ class CvController extends Controller
             'cv' => $cv,
         ]);
     }
+
+    public function viewForStaff($id)
+{
+    $cv = Cv::find($id);
+
+    if (!$cv) {
+        return response()->json([
+            'message' => 'CV not found.'
+        ], 404);
+    }
+
+    if (!Storage::disk('public')->exists($cv->file_path)) {
+        return response()->json([
+            'message' => 'CV file not found.'
+        ], 404);
+    }
+
+    return response()->file(
+        Storage::disk('public')->path($cv->file_path),
+        [
+            'Content-Type' => $cv->file_type,
+            'Content-Disposition' => 'inline; filename="' . $cv->file_name . '"',
+        ]
+    );
+}
 }

@@ -336,7 +336,51 @@ public function sendToHiringManager(Request $request)
     ]);
 }
 
+/**
+ * Send Hiring Manager shortlisted candidates back to HR.
+ *
+ * POST /api/applications/send-shortlisted-to-hr
+ */public function sendShortlistedToHR(Request $request)
+{
+    $validated = $request->validate([
+        'job_position_id' => 'required|exists:job_positions,id',
+        'application_ids' => 'required|array|min:1',
+        'application_ids.*' => 'required|exists:applications,id',
+    ]);
 
+    $applications = Application::where(
+        'job_position_id',
+        $validated['job_position_id']
+    )
+        ->whereIn('id', $validated['application_ids'])
+        ->where('sent_to_hiring_manager', true)
+        ->get();
+
+    if ($applications->isEmpty()) {
+        return response()->json([
+            'message' => 'No valid candidates were selected.'
+        ], 404);
+    }
+
+    $applications->each(function ($application) {
+        $application->update([
+            'status' => 'shortlisted',
+            'shortlisted_by_hiring_manager' => true,
+        ]);
+    });
+
+    $applications->load([
+        'candidate.user',
+        'jobPosition',
+        'cv'
+    ]);
+
+    return response()->json([
+        'message' =>
+            'Shortlisted candidates have been sent to HR successfully.',
+        'applications' => $applications,
+    ]);
+}
     /**
      * Manually evaluate an application.
      *

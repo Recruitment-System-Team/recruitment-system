@@ -190,37 +190,6 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Hiring Manager
-    |--------------------------------------------------------------------------
-    */
-
-    Route::middleware('role:Hiring Manager')->group(function () {
-
-        // Update application status
-        Route::patch(
-            '/applications/{id}/status',
-            [ApplicationController::class, 'updateStatus']
-        );
-
-        // Send selected candidates back to HR
-        Route::post(
-            '/applications/send-shortlisted-to-hr',
-            [ApplicationController::class, 'sendShortlistedToHR']
-        );
-
-         Route::get(
-        '/interviews/{id}/feedback/all',
-        [InterviewController::class, 'getAllFeedback']
-    );
-
-    Route::patch(
-        '/interviews/{id}/feedback',
-        [InterviewController::class, 'updateMyFeedback']
-    );
-
-    });
 
 
     /*

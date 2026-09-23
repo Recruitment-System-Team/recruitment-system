@@ -1201,7 +1201,7 @@ private function syncLockedInterviewSchedule(
 }
 
 return $createdCount;
-        return $createdCount;
+        
     }
 
 

@@ -621,9 +621,7 @@ const handleSubmitInterviewFeedback = async () => {
         const response = await fetch(
             `${API_URL}/interviews/${selectedInterview.id}/feedback`,
             {
-                method: hasOwnFeedback
-                    ? "PATCH"
-                    : "POST",
+                method: "POST",
 
                 headers: {
                     "Content-Type":
@@ -720,7 +718,9 @@ const handleSubmitInterviewFeedback = async () => {
 const interviewVacancies = useMemo(() => {
     const grouped = {};
 
-    interviews.forEach((interview) => {
+    interviews
+        .filter((interview) => Number(interview?.interview_number) === 2)
+        .forEach((interview) => {
         const vacancyId =
             getInterviewVacancyId(interview);
 
@@ -745,6 +745,43 @@ const interviewVacancies = useMemo(() => {
     return Object.values(grouped);
 }, [interviews]);
 
+
+/*
+ * ---------------------------------------------------------
+ * UNIQUE INTERVIEW CANDIDATES
+ * One candidate card per application.
+ * Interview 1 and Interview 2 remain available
+ * inside the candidate's interview records.
+ * ---------------------------------------------------------
+ */
+
+const getUniqueInterviewCandidates = (vacancy) => {
+    const uniqueCandidates = new Map();
+
+    (vacancy?.interviews || []).forEach((interview) => {
+        const applicationId =
+            interview?.application?.id;
+
+        if (!applicationId) return;
+
+        if (!uniqueCandidates.has(applicationId)) {
+            uniqueCandidates.set(applicationId, {
+                application:
+                    interview.application,
+                interviews: [],
+            });
+        }
+
+        uniqueCandidates
+            .get(applicationId)
+            .interviews
+            .push(interview);
+    });
+
+    return Array.from(
+        uniqueCandidates.values()
+    );
+};
     /*
      * ---------------------------------------------------------
      * LOADING
