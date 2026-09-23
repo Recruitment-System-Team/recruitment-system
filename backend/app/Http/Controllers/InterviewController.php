@@ -623,33 +623,6 @@ if ($hiringManager->position !== 'Hiring Manager') {
     ], 422);
 }
 
-$hiringManager = User::with([
-    'role',
-    'googleCalendarConnection',
-])->findOrFail(
-    $interviewTwoData['hiring_manager_id']
-);
-
-if (
-    $hrManager->position !==
-    'HR Manager'
-) {
-    return response()->json([
-        'message' =>
-            'The selected HR Manager account is invalid.',
-    ], 422);
-}
-
-if (
-    $hiringManager->position !==
-    'Hiring Manager'
-) {
-    return response()->json([
-        'message' =>
-            'The selected Hiring Manager account is invalid.',
-    ], 422);
-}
-
 
 
     /*

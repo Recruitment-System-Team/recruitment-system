@@ -303,6 +303,47 @@ const [selectedUser, setSelectedUser] = useState(null);
         );
     }
 };
+const deleteUser = async (account) => {
+    const confirmed = window.confirm(
+        `Are you sure you want to delete ${account.name}'s account? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        const response = await fetch(
+            `${API_URL}/admin/users/${account.id}`,
+            {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: "application/json",
+                },
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Failed to delete account.");
+        }
+
+        alert("User account deleted successfully.");
+
+        setUsers((prev) =>
+            prev.filter((user) => user.id !== account.id)
+        );
+
+        // Close profile modal if the deleted user was open
+        if (selectedUser?.id === account.id) {
+            setSelectedUser(null);
+        }
+
+    } catch (error) {
+        console.error("Delete user error:", error);
+        alert(error.message || "Failed to delete user.");
+    }
+};
 
     return (
         <div
@@ -924,6 +965,18 @@ const [selectedUser, setSelectedUser] = useState(null);
 
                                 </div>
                             )}
+
+                        <div className="admin-modal-actions">
+                            <button
+                                type="button"
+                                className="admin-delete-btn"
+                                onClick={() =>
+                                    deleteUser(selectedUser)
+                                }
+                            >
+                                Delete Account
+                            </button>
+                        </div>
 
                     </div>
                 </div>

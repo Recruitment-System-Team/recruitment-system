@@ -1,4 +1,4 @@
-/* =========================
+/* ======================
    ADMIN DASHBOARD
 ========================= */
 
@@ -1728,4 +1728,24 @@
 .admin-dashboard.light-mode .admin-create-button,
 .admin-dashboard.light-mode .admin-modal-create-button {
     color: #ffffff;
+}
+
+.admin-modal-actions {
+    margin-top: 24px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.admin-delete-btn {
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    background: #dc3545;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.admin-delete-btn:hover {
+    opacity: 0.85;
 }

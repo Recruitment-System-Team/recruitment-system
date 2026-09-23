@@ -73,6 +73,10 @@ Route::middleware('auth:sanctum')->group(function () {
         '/admin/users',
         [AdminController::class, 'store']
     );
+    Route::delete(
+    '/admin/users/{user}',
+    [AdminController::class, 'destroy']
+);
 
     // Connect a Google Calendar for a specific staff member
     Route::get(

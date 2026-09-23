@@ -89,4 +89,41 @@ class AdminController extends Controller
         'url' => $googleCalendar->authorizationUrl($user->id),
     ]);
 }
+
+/**
+ * Delete a user account.
+ */
+public function destroy(Request $request, User $user)
+{
+    // Prevent the currently logged-in admin from deleting themselves
+    if ($request->user()->id === $user->id) {
+        return response()->json([
+            'message' => 'You cannot delete your own account.'
+        ], 403);
+    }
+
+    // Prevent deleting another System Administrator
+    if ($user->role?->name === 'System Administrator') {
+        return response()->json([
+            'message' => 'System Administrator accounts cannot be deleted.'
+        ], 403);
+    }
+
+    // Remove Google Calendar connection first
+    if ($user->googleCalendarConnection) {
+        $user->googleCalendarConnection->delete();
+    }
+
+    // Remove candidate profile if this is a candidate
+    if ($user->candidate) {
+        $user->candidate->delete();
+    }
+
+    // Delete the user
+    $user->delete();
+
+    return response()->json([
+        'message' => 'User account deleted successfully.'
+    ]);
+}
 }
