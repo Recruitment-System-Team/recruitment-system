@@ -2664,7 +2664,7 @@ const loadInterviewData = async () => {
                     </span>
 
                     <span className="dropdown">
-                        ⌄
+                        
                     </span>
                 </div>
 
