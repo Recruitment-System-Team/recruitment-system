@@ -251,6 +251,10 @@ Route::middleware('auth:sanctum')->group(function () {
         [ApplicationController::class, 'show']
     );
 
+    Route::post(
+    '/applications/send-shortlisted-to-hr',
+    [ApplicationController::class, 'sendShortlistedToHR']
+);
 
     /*
     |--------------------------------------------------------------------------
