@@ -4398,17 +4398,15 @@ setSelectedSeniorEngineer(null);
     interviewOneDate &&
     interviewOneTime && (
         <button
-            type="button"
-            className="interview-schedule-button"
-            disabled={schedulingInterview}
-            onClick={() =>
-                handleScheduleInterview(1)
-            }
-        >
-            {schedulingInterview
-                ? "Scheduling..."
-                : "Schedule Interview 1"}
-        </button>
+    type="button"
+    className="interview-schedule-button"
+    disabled={schedulingInterview}
+    onClick={() => handleScheduleInterview(1)}
+>
+    {schedulingInterview
+        ? "Scheduling..."
+        : "Schedule Interview 1"}
+</button>
     )}
 
 
