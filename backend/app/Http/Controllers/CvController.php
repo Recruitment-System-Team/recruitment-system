@@ -12,12 +12,15 @@ class CvController extends Controller
 {
     /**
      * Upload a CV for the currently authenticated candidate.
+     *
+     * The candidate_id is obtained from the logged-in user's
+     * candidate relationship. It is NOT accepted from the request.
      */
     public function store(Request $request)
     {
         /*
         |--------------------------------------------------------------------------
-        | 1. Get logged-in user
+        | 1. Get the logged-in user
         |--------------------------------------------------------------------------
         */
 
@@ -31,7 +34,7 @@ class CvController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 2. Get candidate
+        | 2. Get the candidate belonging to this user
         |--------------------------------------------------------------------------
         */
 
@@ -45,7 +48,7 @@ class CvController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 3. Validate request
+        | 3. Validate candidate information and CV
         |--------------------------------------------------------------------------
         */
 
@@ -84,7 +87,7 @@ class CvController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 4. Update candidate profile
+        | 4. Update the candidate profile
         |--------------------------------------------------------------------------
         */
 
@@ -95,7 +98,7 @@ class CvController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 5. Get uploaded file
+        | 6. Get uploaded CV
         |--------------------------------------------------------------------------
         */
 
@@ -103,7 +106,7 @@ class CvController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 6. Store CV
+        | 7. Store the CV
         |--------------------------------------------------------------------------
         */
 
@@ -114,7 +117,7 @@ class CvController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 7. Create CV record
+        | 8. Create CV database record
         |--------------------------------------------------------------------------
         */
 
@@ -129,20 +132,48 @@ class CvController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 8. Extract PDF text
+        | 9. Process PDF
         |--------------------------------------------------------------------------
+        |
+        | At this stage, PDF files are processed using
+        | Smalot PDF Parser.
+        |
         */
 
         if ($file->getClientMimeType() === 'application/pdf') {
 
             try {
 
+                /*
+                |--------------------------------------------------------------------------
+                | Get full stored file path
+                |--------------------------------------------------------------------------
+                */
+
                 $fullPath = Storage::disk('public')
                     ->path($filePath);
 
+                /*
+                |--------------------------------------------------------------------------
+                | Create PDF parser
+                |--------------------------------------------------------------------------
+                */
+
                 $parser = new Parser();
 
+                /*
+                |--------------------------------------------------------------------------
+                | Parse PDF
+                |--------------------------------------------------------------------------
+                */
+
                 $pdf = $parser->parseFile($fullPath);
+
+                /*
+                |--------------------------------------------------------------------------
+                | Extract text
+                |--------------------------------------------------------------------------
+                */
 
                 $text = $pdf->getText();
 
@@ -183,6 +214,9 @@ class CvController extends Controller
                 |--------------------------------------------------------------------------
                 | Extraction failed
                 |--------------------------------------------------------------------------
+                |
+                | Keep the uploaded CV but mark processing as failed.
+                |
                 */
 
                 $cv->update([
@@ -193,7 +227,7 @@ class CvController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 9. Refresh CV
+        | 10. Reload CV
         |--------------------------------------------------------------------------
         */
 
@@ -201,7 +235,7 @@ class CvController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 10. Return response
+        | 11. Return response
         |--------------------------------------------------------------------------
         */
 
@@ -226,7 +260,7 @@ class CvController extends Controller
     /**
      * Get all CVs belonging to the authenticated candidate.
      */
-    public function index(Request $request)
+    public function index()
     {
         /*
         |--------------------------------------------------------------------------
@@ -234,7 +268,7 @@ class CvController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $user = $request->user();
+        $user = request()->user();
 
         if (!$user) {
             return response()->json([
@@ -266,12 +300,6 @@ class CvController extends Controller
             ->latest()
             ->get();
 
-        /*
-        |--------------------------------------------------------------------------
-        | 4. Return CVs
-        |--------------------------------------------------------------------------
-        */
-
         return response()->json([
             'candidate' => [
                 'id' => $candidate->id,
@@ -290,7 +318,7 @@ class CvController extends Controller
     /**
      * Get a single CV belonging to the authenticated candidate.
      */
-    public function show(Request $request, $id)
+    public function show($id)
     {
         /*
         |--------------------------------------------------------------------------
@@ -298,7 +326,7 @@ class CvController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $user = $request->user();
+        $user = request()->user();
 
         if (!$user) {
             return response()->json([
@@ -339,146 +367,12 @@ class CvController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 4. Return CV information
+        | 4. Return CV
         |--------------------------------------------------------------------------
         */
 
         return response()->json([
             'cv' => $cv,
         ]);
-    }
-
-
-    /**
-     * View a candidate CV from the HR/staff dashboard.
-     *
-     * GET /api/cvs/{id}/view
-     */
-    public function viewForStaff(Request $request, $id)
-    {
-        /*
-        |--------------------------------------------------------------------------
-        | 1. Check authentication
-        |--------------------------------------------------------------------------
-        */
-
-        $user = $request->user();
-
-        if (!$user) {
-            return response()->json([
-                'message' => 'Unauthenticated.'
-            ], 401);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | 2. Check staff role
-        |--------------------------------------------------------------------------
-        */
-
-        $allowedRoles = [
-            'HR Manager',
-            'Hiring Manager',
-            'Interviewer',
-            'System Administrator',
-            'Staff',
-        ];
-
-        if (!$user->role) {
-            return response()->json([
-                'message' => 'Forbidden.'
-            ], 403);
-        }
-
-        $roleName = trim($user->role->name);
-
-        if (!in_array($roleName, $allowedRoles, true)) {
-            return response()->json([
-                'message' => 'Forbidden.'
-            ], 403);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | 3. Find CV
-        |--------------------------------------------------------------------------
-        */
-
-        $cv = Cv::find($id);
-
-        if (!$cv) {
-            return response()->json([
-                'message' => 'CV not found.'
-            ], 404);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | 4. Check stored file
-        |--------------------------------------------------------------------------
-        */
-
-        if (!$cv->file_path) {
-            return response()->json([
-                'message' => 'CV file path is missing.'
-            ], 404);
-        }
-
-        $disk = Storage::disk('public');
-
-        if (!$disk->exists($cv->file_path)) {
-            return response()->json([
-                'message' => 'CV file not found on the server.'
-            ], 404);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | 5. Get MIME type
-        |--------------------------------------------------------------------------
-        */
-
-        $mimeType = $cv->file_type;
-
-        if (!$mimeType) {
-            $mimeType = $disk->mimeType($cv->file_path);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | 6. PDF files can be displayed directly in browser
-        |--------------------------------------------------------------------------
-        */
-
-        if ($mimeType === 'application/pdf') {
-
-            return response()->file(
-                $disk->path($cv->file_path),
-                [
-                    'Content-Type' => 'application/pdf',
-
-                    'Content-Disposition' =>
-                        'inline; filename="' .
-                        addslashes(
-                            $cv->file_name ?? 'cv.pdf'
-                        ) .
-                        '"',
-                ]
-            );
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | 7. DOC / DOCX files cannot normally be previewed
-        |    directly by the browser.
-        |
-        |    Download them instead.
-        |--------------------------------------------------------------------------
-        */
-
-        return $disk->download(
-            $cv->file_path,
-            $cv->file_name ?? 'cv'
-        );
     }
 }
