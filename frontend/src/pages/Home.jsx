@@ -29,7 +29,7 @@ const Home = () => {
                 <div className="home-nav-links">
                     <a href="#how-it-works">How it works</a>
                     <a href="#for-candidates">Candidates</a>
-                    <a href="#for-hr">HR Teams</a>
+                    <a href="#for-hr">Staff Teams</a>
                 </div>
 
                 <div className="home-nav-actions">
