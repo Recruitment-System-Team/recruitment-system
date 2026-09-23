@@ -229,26 +229,34 @@ if (
     /**
      * Update application status.
      */
-   public function updateStatus(Request $request, $id)
+  public function updateStatus(Request $request, $id)
 {
     $validated = $request->validate([
         'status' =>
             'required|string|in:new,screening,shortlisted,interview,selected,rejected'
     ]);
 
-    $application =
-        Application::findOrFail($id);
+    $application = Application::findOrFail($id);
 
-    $oldStatus =
-        $application->status;
+    $oldStatus = $application->status;
+    $newStatus = $validated['status'];
 
-    $newStatus =
-        $validated['status'];
+    $updateData = [
+        'status' => $newStatus
+    ];
 
-    $application->update([
-        'status' =>
-            $newStatus
-    ]);
+    /*
+     * When the Hiring Manager shortlists a candidate,
+     * mark the application as shortlisted by the Hiring Manager.
+     *
+     * HR Interview 1 uses this flag to find candidates
+     * who have been shortlisted by the Hiring Manager.
+     */
+    if ($newStatus === 'shortlisted') {
+        $updateData['shortlisted_by_hiring_manager'] = true;
+    }
+
+    $application->update($updateData);
 
     $application->load([
         'candidate.user',
@@ -260,9 +268,6 @@ if (
     /*
      * Only send an email when the candidate actually
      * enters Selected or Rejected.
-     *
-     * This prevents duplicate emails when the same
-     * status is saved again.
      */
     if (
         $oldStatus !== $newStatus &&
@@ -281,12 +286,10 @@ if (
     return response()->json([
         'message' =>
             'Application status updated successfully.',
-
         'application' =>
             $application
     ]);
 }
-
 
     /**
  * Send top candidates to Hiring Manager for review.
