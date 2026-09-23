@@ -1419,6 +1419,25 @@ const handleViewCv = async (cv) => {
         applicationId,
         newStatus
     ) => {
+         if (newStatus === "selected") {
+        const confirmed = window.confirm(
+            "Are you sure you want to select this candidate? A selection email will be sent."
+        );
+
+        if (!confirmed) {
+            return;
+        }
+    }
+
+    if (newStatus === "rejected") {
+        const confirmed = window.confirm(
+            "Are you sure you want to reject this candidate? A rejection email will be sent."
+        );
+
+        if (!confirmed) {
+            return;
+        }
+    }
         try {
             setStatusUpdating(true);
             setError("");
@@ -2155,6 +2174,7 @@ const checkSelectedInterviewerAvailability = async (
             suggested_time: null,
         };
     }
+
 
     try {
         const token =
@@ -6067,15 +6087,38 @@ setSelectedHiringManager(null);
 <button
     type="button"
     className="interview-schedule-button"
-    disabled={schedulingInterview}
-    onClick={() =>
-        handleScheduleInterview(
-            selectedInterviewProfileNumber,
-            selectedInterviewProfileCandidate
-        )
-    }
+    disabled={schedulingInterview || statusUpdating}
+    onClick={async () => {
+
+        const status =
+            interviewProfileStatus;
+
+        // Selected or Rejected:
+        // update application status only.
+        if (
+            status === "selected" ||
+            status === "rejected"
+        ) {
+            await handleStatusChange(
+                selectedInterviewProfileCandidate.id,
+                status
+            );
+
+            setSelectedInterviewProfileCandidate(
+                null
+            );
+
+            return;
+        }
+
+        // Interview:
+        // use the existing scheduling flow.
+        await handleScheduleInterview(
+            selectedInterviewProfileNumber
+        );
+    }}
 >
-    {schedulingInterview
+    {schedulingInterview || statusUpdating
         ? "Saving..."
         : "Save"}
 </button>
