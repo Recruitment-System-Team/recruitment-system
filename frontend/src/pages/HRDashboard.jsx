@@ -2997,14 +2997,14 @@ const loadInterviewData = async () => {
 
                             <div className="header-actions">
                                 <button
-                                    className="refresh-button"
-                                    onClick={
-                                        handleRefresh
-                                    }
-                                    title="Refresh dashboard"
-                                >
-                                    ↻
-                                </button>
+    type="button"
+    className="refresh-button"
+    onClick={handleRefresh}
+    title="Refresh dashboard"
+    aria-label="Refresh dashboard"
+>
+    ↻
+</button>
 
                                 <button
                                     className="create-vacancy-button"
