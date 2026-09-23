@@ -88,6 +88,12 @@ const [interviewOneDate, setInterviewOneDate] =
 const [interviewTwoDate, setInterviewTwoDate] =
     useState("");
 
+const [interviewOneTime, setInterviewOneTime] =
+    useState("");
+
+const [interviewTwoTime, setInterviewTwoTime] =
+    useState("");
+
 const [selectedTechLead, setSelectedTechLead] =
     useState(null);
 
@@ -109,6 +115,7 @@ const [interviewTwoAvailability, setInterviewTwoAvailability] =
 const [selectedInterviewerProfile, setSelectedInterviewerProfile] =
     useState(null);
 
+    
 const [interviewLoading, setInterviewLoading] =
     useState(false);
 
@@ -122,6 +129,10 @@ const [schedulingInterview, setSchedulingInterview] =
     useState(false);
 
 const [interviewMessage, setInterviewMessage] =
+    useState("");const [selectedInterviewOneVacancyId, setSelectedInterviewOneVacancyId] =
+    useState("");
+
+const [selectedInterviewTwoVacancyId, setSelectedInterviewTwoVacancyId] =
     useState("");
 
 
@@ -137,7 +148,38 @@ const [interviewProfileStatus, setInterviewProfileStatus] =
     const [myFeedbacks, setMyFeedbacks] =
     useState([]);
 
+    const [selectedInterviewProfileInterview, setSelectedInterviewProfileInterview] =
+    useState(null);
+
+const [interviewFeedbackText, setInterviewFeedbackText] =
+    useState("");
+
+const [existingInterviewFeedback, setExistingInterviewFeedback] =
+    useState(null);
+
+const [interviewFeedbackLoading, setInterviewFeedbackLoading] =
+    useState(false);
+
+const [interviewFeedbackSubmitting, setInterviewFeedbackSubmitting] =
+    useState(false);
+
+const [interviewFeedbackError, setInterviewFeedbackError] =
+    useState("");
+
 const [myFeedbacksLoading, setMyFeedbacksLoading] =
+    useState(false);
+
+
+    const [candidateFeedbacks, setCandidateFeedbacks] =
+    useState([]);
+
+const [candidateFeedbackLoading, setCandidateFeedbackLoading] =
+    useState(false);
+
+const [candidateFeedbackError, setCandidateFeedbackError] =
+    useState("");
+
+    const [showCandidateFeedback, setShowCandidateFeedback] =
     useState(false);
     // =========================================================
     // NAVIGATION
@@ -334,6 +376,58 @@ const [myFeedbacksLoading, setMyFeedbacksLoading] =
         }
     };
 
+    const fetchCandidateFeedback = async (applicationId) => {
+
+    if (!applicationId) {
+        return;
+    }
+
+    try {
+
+        setCandidateFeedbackLoading(true);
+        setCandidateFeedbackError("");
+        setCandidateFeedbacks([]);
+
+        const response = await fetch(
+            `${API_URL}/applications/${applicationId}/interview-feedback`,
+            {
+                headers: {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Unable to load interview feedback."
+            );
+        }
+
+        setCandidateFeedbacks(
+            data.feedback || []
+        );
+
+    } catch (error) {
+
+        console.error(
+            "CANDIDATE FEEDBACK ERROR:",
+            error
+        );
+
+        setCandidateFeedbackError(
+            error.message ||
+            "Unable to load interview feedback."
+        );
+
+    } finally {
+
+        setCandidateFeedbackLoading(false);
+    }
+};
     // =========================================================
     // CANDIDATE COUNT
     // =========================================================
@@ -1447,6 +1541,81 @@ const fetchMyFeedbacks = async () => {
         setMyFeedbacksLoading(false);
     }
 };
+
+
+const handleSelectForPosition = async (application) => {
+    const candidateName =
+        application.candidate?.user?.name ||
+        application.candidate?.user?.full_name ||
+        "this candidate";
+
+    const positionName =
+        application.jobPosition?.title ||
+        application.job_position?.title ||
+        "this position";
+
+    const confirmed = window.confirm(
+        `Are you sure you want to select ${candidateName} for the ${positionName} position?`
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        setError("");
+
+        const response = await fetch(
+            `${API_URL}/applications/${application.id}/status`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    status: "selected",
+                }),
+            }
+        );
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                    "Unable to select candidate for the position."
+            );
+        }
+
+        // Update Interview 2 immediately
+        setInterviewTwoCandidates((current) =>
+            current.map((item) =>
+                Number(item.id) === Number(application.id)
+                    ? {
+                          ...item,
+                          status: "selected",
+                      }
+                    : item
+            )
+        );
+
+        // Also refresh the main application data
+        await fetchApplications();
+
+    } catch (error) {
+        console.error(
+            "SELECT FOR POSITION ERROR:",
+            error
+        );
+
+        setError(
+            error.message ||
+                "Unable to select candidate for the position."
+        );
+    }
+};
     // =========================================================
     // LOGOUT
     // =========================================================
@@ -1541,16 +1710,16 @@ const fetchMyFeedbacks = async () => {
 // =========================================================
 // INTERVIEW DATA
 // =========================================================
-
-const openInterviewProfile = (
+const openInterviewProfile = async (
     application,
-    interviewNumber
+    interviewNumber,
+    interview = null
 ) => {
     setSelectedInterviewProfileCandidate(application);
+    setSelectedInterviewProfileNumber(interviewNumber);
+    setSelectedInterviewProfileInterview(interview);
 
-    setSelectedInterviewProfileNumber(
-        interviewNumber
-    );
+    fetchCandidateFeedback(application?.id);
 
     const currentStatus =
         String(application.status || "").toLowerCase();
@@ -1562,8 +1731,132 @@ const openInterviewProfile = (
     } else {
         setInterviewProfileStatus("interview");
     }
+
+    /*
+     * Load feedback for Interview 2
+     */
+    if (interviewNumber === 2 && interview?.id) {
+
+        setInterviewFeedbackText("");
+        setExistingInterviewFeedback(null);
+        setInterviewFeedbackError("");
+        setInterviewFeedbackLoading(true);
+
+        try {
+            const response = await fetch(
+                `${API_URL}/interviews/${interview.id}/feedback`,
+                {
+                    headers: {
+                        Accept: "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message ||
+                    "Unable to load interview feedback."
+                );
+            }
+
+            if (data.feedback) {
+                setExistingInterviewFeedback(data.feedback);
+
+                setInterviewFeedbackText(
+                    data.feedback.feedback || ""
+                );
+            }
+
+        } catch (error) {
+
+            console.error(
+                "INTERVIEW 2 FEEDBACK LOAD ERROR:",
+                error
+            );
+
+            setInterviewFeedbackError(
+                error.message ||
+                "Unable to load feedback."
+            );
+
+        } finally {
+            setInterviewFeedbackLoading(false);
+        }
+    }
 };
 
+const handleSubmitInterviewFeedback = async () => {
+
+    if (!selectedInterviewProfileInterview?.id) {
+        return;
+    }
+
+    if (!interviewFeedbackText.trim()) {
+        setInterviewFeedbackError(
+            "Please enter interview feedback."
+        );
+        return;
+    }
+
+    try {
+
+        setInterviewFeedbackSubmitting(true);
+        setInterviewFeedbackError("");
+
+        const response = await fetch(
+            `${API_URL}/interviews/${selectedInterviewProfileInterview.id}/feedback`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    feedback: interviewFeedbackText.trim(),
+                }),
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message ||
+                "Unable to submit interview feedback."
+            );
+        }
+
+        setExistingInterviewFeedback(
+            data.feedback
+        );
+
+        setInterviewFeedbackText(
+            data.feedback?.feedback ||
+            interviewFeedbackText
+        );
+
+        await fetchMyFeedbacks();
+
+    } catch (error) {
+
+        console.error(
+            "INTERVIEW 2 FEEDBACK SUBMIT ERROR:",
+            error
+        );
+
+        setInterviewFeedbackError(
+            error.message ||
+            "Unable to submit interview feedback."
+        );
+
+    } finally {
+        setInterviewFeedbackSubmitting(false);
+    }
+};
 const fetchInterviewOneCandidates = async () => {
     try {
         const token = localStorage.getItem("token");
@@ -1678,7 +1971,8 @@ const fetchInterviewers = async () => {
 };
 const fetchInterviewerAvailability = async (
     date,
-    interviewNumber
+    interviewNumber,
+    startTime = ""
 ) => {
     if (!date) {
         if (interviewNumber === 1) {
@@ -1722,7 +2016,7 @@ const fetchInterviewerAvailability = async (
                         try {
                             const response =
                                 await fetch(
-                                    `${API_URL}/interviews/interviewer-availability?user_id=${interviewer.id}&date=${date}`,
+                                    `${API_URL}/interviews/interviewer-availability?user_id=${interviewer.id}&date=${date}${startTime ? `&start_time=${startTime}` : ""}`,
                                     {
                                         headers: {
                                             Accept:
@@ -1823,7 +2117,8 @@ const fetchInterviewerAvailability = async (
 
 const checkSelectedInterviewerAvailability = async (
     interviewer,
-    date
+    date,
+    startTime = ""
 ) => {
     if (!interviewer || !date) {
         return {
@@ -1838,7 +2133,7 @@ const checkSelectedInterviewerAvailability = async (
             localStorage.getItem("token");
 
         const response = await fetch(
-            `${API_URL}/interviews/interviewer-availability?user_id=${interviewer.id}&date=${date}`,
+            `${API_URL}/interviews/interviewer-availability?user_id=${interviewer.id}&date=${date}${startTime ? `&start_time=${startTime}` : ""}`,
             {
                 headers: {
                     Accept: "application/json",
@@ -1889,23 +2184,33 @@ useEffect(() => {
     if (interviewOneDate) {
         fetchInterviewerAvailability(
             interviewOneDate,
-            1
+            1,
+            interviewOneTime
         );
     } else {
         setInterviewOneAvailability({});
     }
-}, [interviewOneDate, interviewers]);
+}, [
+    interviewOneDate,
+    interviewOneTime,
+    interviewers,
+]);
 
 useEffect(() => {
     if (interviewTwoDate) {
         fetchInterviewerAvailability(
             interviewTwoDate,
-            2
+            2,
+            interviewTwoTime
         );
     } else {
         setInterviewTwoAvailability({});
     }
-}, [interviewTwoDate, interviewers]);
+}, [
+    interviewTwoDate,
+    interviewTwoTime,
+    interviewers,
+]);
 
 const getInterviewersByPosition = (
     position
@@ -1963,20 +2268,32 @@ const handleInterviewerProfile = (
         interviewer
     );
 };
-
 const handleScheduleInterview = async (
-    interviewNumber,
-    applicationOverride = null
+    interviewNumber
 ) => {
     try {
-        const application =
-            applicationOverride ||
-            (interviewNumber === 1
-                ? selectedInterviewOneCandidate
-                : selectedInterviewTwoCandidate);
+        /*
+         * This Interview room already belongs to one vacancy.
+         * Get that vacancy from the candidates currently shown
+         * in this room. We are NOT selecting a candidate for
+         * scheduling; we only need the vacancy ID.
+         */
+        const candidates =
+            interviewNumber === 1
+                ? interviewOneCandidates
+                : interviewTwoCandidates;
 
-        if (!application) {
-            alert("Please select a candidate.");
+        const firstApplication =
+            candidates[0];
+
+        const jobPositionId =
+            firstApplication?.job_position_id ||
+            firstApplication?.jobPosition?.id;
+
+        if (!jobPositionId) {
+            alert(
+                "Unable to determine the vacancy for this interview."
+            );
             return;
         }
 
@@ -1985,14 +2302,31 @@ const handleScheduleInterview = async (
                 ? interviewOneDate
                 : interviewTwoDate;
 
+        const time =
+            interviewNumber === 1
+                ? interviewOneTime
+                : interviewTwoTime;
+
         if (!date) {
-            alert("Please select an interview date.");
+            alert(
+                "Please select an interview date."
+            );
+            return;
+        }
+
+        if (!time) {
+            alert(
+                "Please select the interview start time."
+            );
             return;
         }
 
         if (interviewNumber === 1) {
+
             if (!selectedTechLead) {
-                alert("Please select a Tech Lead.");
+                alert(
+                    "Please select a Tech Lead."
+                );
                 return;
             }
 
@@ -2004,8 +2338,8 @@ const handleScheduleInterview = async (
             }
 
             if (
-                selectedTechLead.id ===
-                selectedSeniorEngineer.id
+                Number(selectedTechLead.id) ===
+                Number(selectedSeniorEngineer.id)
             ) {
                 alert(
                     "Tech Lead and Senior Software Engineer must be different people."
@@ -2013,39 +2347,55 @@ const handleScheduleInterview = async (
                 return;
             }
 
-            if (!isStaffAvailable(selectedTechLead, 1)) {
-    alert(
-        "The selected Tech Lead is no longer available."
-    );
-    return;
-}
-if (
-    !isStaffAvailable(
-        selectedSeniorEngineer,
-        1
-    )
-) {
+            if (
+                !isStaffAvailable(
+                    selectedTechLead,
+                    1
+                )
+            ) {
                 alert(
-                    "The selected Senior Software Engineer is no longer available."
+                    "The selected Tech Lead is not available for the selected 2-hour block."
+                );
+                return;
+            }
+
+            if (
+                !isStaffAvailable(
+                    selectedSeniorEngineer,
+                    1
+                )
+            ) {
+                alert(
+                    "The selected Senior Software Engineer is not available for the selected 2-hour block."
                 );
                 return;
             }
         }
 
         if (interviewNumber === 2) {
+
             if (!selectedHRManager) {
-                alert("Please select the HR Manager.");
+                alert(
+                    "Please select the HR Manager."
+                );
                 return;
             }
 
             if (!selectedHiringManager) {
-                alert("Please select the Hiring Manager.");
+                alert(
+                    "Please select the Hiring Manager."
+                );
                 return;
             }
 
-            if (!isStaffAvailable(selectedHRManager,2)) {
+            if (
+                !isStaffAvailable(
+                    selectedHRManager,
+                    2
+                )
+            ) {
                 alert(
-                    "The HR Manager is not available on this date."
+                    "The selected HR Manager is not available for the selected 2-hour block."
                 );
                 return;
             }
@@ -2057,7 +2407,7 @@ if (
                 )
             ) {
                 alert(
-                    "The Hiring Manager is not available on this date."
+                    "The selected Hiring Manager is not available for the selected 2-hour block."
                 );
                 return;
             }
@@ -2069,25 +2419,17 @@ if (
             localStorage.getItem("token");
 
         const body = {
-            application_id: application.id,
+            job_position_id:
+                Number(jobPositionId),
 
             interview_number:
                 interviewNumber,
 
-            scheduled_date: date,
+            scheduled_date:
+                date,
 
             scheduled_time:
-                interviewNumber === 1
-                    ? getAvailabilityInfo(
-                          selectedTechLead,
-                          1
-                      )?.suggested_time ||
-                      "09:00"
-                    : getAvailabilityInfo(
-                          selectedHRManager,
-                          2
-                      )?.suggested_time ||
-                      "09:00",
+                time,
         };
 
         if (interviewNumber === 1) {
@@ -2095,9 +2437,7 @@ if (
                 Number(selectedTechLead.id);
 
             body.senior_engineer_id =
-                Number(
-                    selectedSeniorEngineer.id
-                );
+                Number(selectedSeniorEngineer.id);
         }
 
         if (interviewNumber === 2) {
@@ -2105,30 +2445,30 @@ if (
                 Number(selectedHRManager.id);
 
             body.hiring_manager_id =
-                Number(
-                    selectedHiringManager.id
-                );
+                Number(selectedHiringManager.id);
         }
 
-        const response = await fetch(
-            `${API_URL}/interviews`,
-            {
-                method: "POST",
+        const response =
+            await fetch(
+                `${API_URL}/interviews`,
+                {
+                    method: "POST",
 
-                headers: {
-                    "Content-Type":
-                        "application/json",
+                    headers: {
+                        "Content-Type":
+                            "application/json",
 
-                    Accept:
-                        "application/json",
+                        Accept:
+                            "application/json",
 
-                    Authorization:
-                        `Bearer ${token}`,
-                },
+                        Authorization:
+                            `Bearer ${token}`,
+                    },
 
-                body: JSON.stringify(body),
-            }
-        );
+                    body:
+                        JSON.stringify(body),
+                }
+            );
 
         const data =
             await response.json();
@@ -2141,40 +2481,24 @@ if (
 
             throw new Error(
                 data.message ||
-                    "Unable to schedule interview."
+                "Unable to schedule interview."
             );
         }
 
         alert(
-            `Interview ${interviewNumber} scheduled successfully.`
+            `Interview ${interviewNumber} has been scheduled and locked for this vacancy.`
         );
-
-        if (interviewNumber === 1) {
-            setSelectedInterviewOneCandidate(null);
-
-            setInterviewOneDate("");
-
-            setSelectedTechLead(null);
-
-            setSelectedSeniorEngineer(null);
-        } else {
-            setSelectedInterviewTwoCandidate(null);
-
-            setInterviewTwoDate("");
-
-            setSelectedHRManager(null);
-
-            setSelectedHiringManager(null);
-        }
-
-        setInterviewerAvailability({});
-
-        setInterviewMessage("");
 
         await loadInterviewData();
 
-        setSelectedInterviewProfileCandidate(null);
+        setInterviewMessage("");
+
+        setSelectedInterviewProfileCandidate(
+            null
+        );
+
     } catch (error) {
+
         console.error(
             "SCHEDULE INTERVIEW ERROR:",
             error
@@ -2182,13 +2506,13 @@ if (
 
         alert(
             error.message ||
-                "Unable to schedule interview."
+            "Unable to schedule interview."
         );
+
     } finally {
         setSchedulingInterview(false);
     }
 };
-
 const handleMoveToInterviewTwo = async (
     applicationId
 ) => {
@@ -2665,13 +2989,10 @@ const loadInterviewData = async () => {
                                 </h1>
 
                                 <p className="page-description">
-                                    Create and manage
-                                    vacancies and
-                                    keep track of
-                                    candidates
-                                    throughout the
-                                    hiring process.
-                                </p>
+    Review candidates assigned to you for
+    Interview 2 and submit your interview
+    assessments.
+</p>
                             </div>
 
                             <div className="header-actions">
@@ -3571,21 +3892,61 @@ const loadInterviewData = async () => {
 
             setInterviewOneDate(date);
 
-            setSelectedTechLead(null);
-            setSelectedSeniorEngineer(null);
+setInterviewOneTime("");
+
+setSelectedTechLead(null);
+setSelectedSeniorEngineer(null);
 
             setInterviewMessage("");
 
-           if (date) {
-    fetchInterviewerAvailability(
-        date,
-        1
-    );
-} else {
-    setInterviewOneAvailability({});
-}
+           
         }}
     />
+</div>
+
+<div className="interview-date-field">
+    <label>
+        Interview Start Time
+    </label>
+
+    <select
+        value={interviewOneTime}
+        onChange={(e) =>
+            setInterviewOneTime(e.target.value)
+        }
+    >
+        <option value="">
+            Select start time
+        </option>
+
+        <option value="09:00">
+            9:00 AM
+        </option>
+
+        <option value="10:00">
+            10:00 AM
+        </option>
+
+        <option value="11:00">
+            11:00 AM
+        </option>
+
+        <option value="12:00">
+            12:00 PM
+        </option>
+
+        <option value="13:00">
+            1:00 PM
+        </option>
+
+        <option value="14:00">
+            2:00 PM
+        </option>
+
+        <option value="15:00">
+            3:00 PM
+        </option>
+    </select>
 </div>
 
 
@@ -3864,7 +4225,23 @@ const loadInterviewData = async () => {
                                     )}
 
                                 </div>
-
+{selectedTechLead &&
+    selectedSeniorEngineer &&
+    interviewOneDate &&
+    interviewOneTime && (
+        <button
+            type="button"
+            className="interview-schedule-button"
+            disabled={schedulingInterview}
+            onClick={() =>
+                handleScheduleInterview(1)
+            }
+        >
+            {schedulingInterview
+                ? "Scheduling..."
+                : "Schedule Interview 1"}
+        </button>
+    )}
 
 
                             </>
@@ -3902,126 +4279,175 @@ const loadInterviewData = async () => {
 
             {/* Candidate table */}
 
-            <div className="interview-table">
+<div className="interview-table">
 
-                <div className="interview-table-row interview-table-head interview-two-head">
+    <div className="interview-table-row interview-table-head interview-two-head">
 
-                    <div>
-                        Candidate
+        <div>
+            Candidate
+        </div>
+
+        <div>
+            Score
+        </div>
+
+        <div>
+            Profile
+        </div>
+
+        <div>
+            Select for Position
+        </div>
+
+    </div>
+
+
+    {interviewTwoCandidates.length === 0 ? (
+
+        <div className="interview-empty-row">
+            No candidates have been moved to Interview 2.
+        </div>
+
+    ) : (
+
+        interviewTwoCandidates.map((application) => {
+
+            const candidate =
+                application.candidate?.user;
+
+            const candidateName =
+                candidate?.name ||
+                candidate?.full_name ||
+                "Unknown Candidate";
+
+            const selected =
+                application.status === "selected";
+
+            return (
+                <div
+                    className={`interview-table-row interview-two-row ${
+                        selected ? "selected" : ""
+                    }`}
+                    key={application.id}
+                >
+
+                    <div className="candidate-name-cell">
+                        {candidateName}
                     </div>
 
-                    <div>
-                        Score
-                    </div>
 
                     <div>
+                        {Number(
+                            application.match_score || 0
+                        ).toFixed(1)}
+                        %
+                    </div>
+
+
+                    <button
+                        type="button"
+                        className="interview-link-button"
+                        onClick={() => {
+                            setSelectedInterviewProfileCandidate(
+                                application
+                            );
+
+                            setSelectedInterviewProfileNumber(2);
+
+                            setInterviewProfileStatus("interview");
+                        }}
+                    >
                         Profile
-                    </div>
+                    </button>
 
-                    <div>
-                        Select
-                    </div>
+
+                   <div>
+    <button
+  type="button"
+  className="interview-select-button"
+  disabled={application.status === "selected"}
+  onClick={async () => {
+    const candidateName =
+      application.candidate?.user?.name ||
+      application.candidate?.user?.full_name ||
+      "this candidate";
+
+    const positionName =
+      application.jobPosition?.title ||
+      application.job_position?.title ||
+      "this position";
+
+    const confirmed = window.confirm(
+      `Are you sure you want to select ${candidateName} for the ${positionName} position?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    await handleStatusChange(application.id, "selected");
+  }}
+>
+  {application.status === "selected"
+    ? "Selected"
+    : "Select for Position"}
+</button>
+</div>
 
                 </div>
+            );
+        })
+
+    )}
+
+</div>
 
 
-                {interviewTwoCandidates.length === 0 ? (
+{/* Persistent selection message */}
 
-                    <div className="interview-empty-row">
-                        No candidates have been moved to Interview 2.
+{interviewTwoCandidates.some(
+    (application) =>
+        application.status === "selected"
+) && (
+    <div className="interview-selection-messages">
+
+        {interviewTwoCandidates
+            .filter(
+                (application) =>
+                    application.status === "selected"
+            )
+            .map((application) => {
+
+                const candidateName =
+                    application.candidate?.user?.name ||
+                    application.candidate?.user?.full_name ||
+                    "Candidate";
+
+                const positionName =
+                    application.jobPosition?.title ||
+                    application.job_position?.title ||
+                    "Position";
+
+                return (
+                    <div
+                        key={application.id}
+                        className="selection-success-message"
+                    >
+                        ✓ {candidateName} has been selected
+                        for the {positionName} position.
                     </div>
+                );
+            })}
 
-                ) : (
-
-                    interviewTwoCandidates.map(
-                        (application) => {
-
-                            const candidate =
-                                application.candidate?.user;
-
-                            const candidateName =
-                                candidate?.name ||
-                                candidate?.full_name ||
-                                "Unknown Candidate";
-
-                            const selected =
-                                selectedInterviewTwoCandidate?.id ===
-                                application.id;
-
-                            return (
-                                <div
-                                    className={`interview-table-row interview-two-row ${
-                                        selected
-                                            ? "selected"
-                                            : ""
-                                    }`}
-                                    key={
-                                        application.id
-                                    }
-                                >
-
-                                    <div className="candidate-name-cell">
-                                        {candidateName}
-                                    </div>
-
-
-                                    <div>
-                                        {Number(
-                                            application.match_score ||
-                                                0
-                                        ).toFixed(1)}
-                                        %
-                                    </div>
-
-
-                                    <button
-    type="button"
-    className="interview-link-button"
-    onClick={() => {
-        setSelectedInterviewProfileCandidate(
-            application
-        );
-
-        setSelectedInterviewProfileNumber(2);
-
-        setInterviewProfileStatus("interview");
-    }}
->
-    Profile
-</button>
-
-
-                                    <div>
-                                        <button
-                                            type="button"
-                                            className="interview-select-button"
-                                            onClick={() =>
-                                                setSelectedInterviewTwoCandidate(
-                                                    application
-                                                )
-                                            }
-                                        >
-                                            {selected
-                                                ? "Selected"
-                                                : "Select"}
-                                        </button>
-                                    </div>
-
-                                </div>
-                            );
-                        }
-                    )
-
-                )}
-
-            </div>
+    </div>
+)}
 
 
             {/* =================================================
                 INTERVIEW 2 SCHEDULING
             ================================================= */}
 
-            {selectedInterviewTwoCandidate && (
+            {interviewTwoCandidates.length > 0 && (
                 <div className="interview-scheduling">
 
                     <h4>
@@ -4029,23 +4455,7 @@ const loadInterviewData = async () => {
                     </h4>
 
 
-                    <div className="selected-interview-candidate">
-
-                        <strong>
-                            Selected candidate:
-                        </strong>
-
-                        <span>
-                            {
-                                selectedInterviewTwoCandidate
-                                    .candidate
-                                    ?.user
-                                    ?.name ||
-                                "Candidate"
-                            }
-                        </span>
-
-                    </div>
+                   
 
 
                     <div className="interview-date-field">
@@ -4069,33 +4479,64 @@ const loadInterviewData = async () => {
                                 const date =
                                     e.target.value;
 
-                                setInterviewTwoDate(
-                                    date
-                                );
+                                setInterviewTwoDate(date);
 
-                                setSelectedHRManager(
-                                    null
-                                );
+setInterviewTwoTime("");
 
-                                setSelectedHiringManager(
-                                    null
-                                );
+setSelectedHRManager(null);
+setSelectedHiringManager(null);
 
                                 setInterviewMessage("");
 
-                               if (date) {
-    fetchInterviewerAvailability(
-        date,
-        2
-    );
-} else {
-    setInterviewTwoAvailability({});
-}
+                               
                             }}
                         />
 
                     </div>
+<div className="interview-date-field">
+    <label>
+        Interview Start Time
+    </label>
 
+    <select
+        value={interviewTwoTime}
+        onChange={(e) =>
+            setInterviewTwoTime(e.target.value)
+        }
+    >
+        <option value="">
+            Select start time
+        </option>
+
+        <option value="09:00">
+            9:00 AM
+        </option>
+
+        <option value="10:00">
+            10:00 AM
+        </option>
+
+        <option value="11:00">
+            11:00 AM
+        </option>
+
+        <option value="12:00">
+            12:00 PM
+        </option>
+
+        <option value="13:00">
+            1:00 PM
+        </option>
+
+        <option value="14:00">
+            2:00 PM
+        </option>
+
+        <option value="15:00">
+            3:00 PM
+        </option>
+    </select>
+</div>
 
                     {interviewTwoDate && (
                         <div className="interviewer-availability">
@@ -4576,129 +5017,117 @@ const loadInterviewData = async () => {
         ) : (
             <div className="my-feedback-list">
 
-                {myFeedbacks.map(
-                    (feedback) => {
+                {myFeedbacks.map((feedbackItem) => {
 
-                        const interview =
-                            feedback.interview;
+    const interview =
+        feedbackItem.interview;
 
-                        const application =
-                            interview?.application;
+    const application =
+        interview?.application;
 
-                        const candidateName =
-                            application
-                                ?.candidate
-                                ?.user
-                                ?.name ||
-                            application
-                                ?.candidate
-                                ?.name ||
-                            "Unknown Candidate";
+    const candidateName =
+        application
+            ?.candidate
+            ?.user
+            ?.name ||
+        application
+            ?.candidate
+            ?.name ||
+        "Unknown Candidate";
 
-                        const vacancyTitle =
-                            application
-                                ?.jobPosition
-                                ?.title ||
-                            application
-                                ?.job_position
-                                ?.title ||
-                            "Untitled Vacancy";
+    const vacancyTitle =
+        application
+            ?.jobPosition
+            ?.title ||
+        application
+            ?.job_position
+            ?.title ||
+        "Untitled Vacancy";
 
-                        return (
-                            <div
-                                className="my-feedback-card"
-                                key={
-                                    feedback.id
-                                }
-                            >
+    const hasFeedback =
+        Boolean(
+            feedbackItem.feedback &&
+            feedbackItem.feedback.trim()
+        );
 
-                                <div className="my-feedback-header">
+    return (
+        <div
+            className="my-feedback-card"
+            key={feedbackItem.id}
+        >
 
-                                    <div className="my-feedback-avatar">
-                                        {candidateName
-                                            .charAt(0)
-                                            .toUpperCase()}
-                                    </div>
+            <div className="my-feedback-header">
 
-                                    <div>
+                <div className="my-feedback-avatar">
+                    {candidateName
+                        .charAt(0)
+                        .toUpperCase()}
+                </div>
 
-                                        <h3>
-                                            {
-                                                candidateName
-                                            }
-                                        </h3>
+                <div>
 
-                                        <p>
-                                            Interview{" "}
-                                            {
-                                                interview
-                                                    ?.interview_number ||
-                                                1
-                                            }{" "}
-                                            ·{" "}
-                                            {
-                                                vacancyTitle
-                                            }
-                                        </p>
+                    <h3>
+                        {candidateName}
+                    </h3>
 
-                                    </div>
+                    <p>
+                        Interview 2 ·{" "}
+                        {vacancyTitle}
+                    </p>
 
-                                </div>
+                </div>
 
-                                <div className="my-feedback-date">
-                                    {interview
-                                        ?.scheduled_date
-                                        ? new Date(
-                                              interview.scheduled_date
-                                          ).toLocaleDateString()
-                                        : "Date not available"}
-                                </div>
+            </div>
 
-                                <div className="my-feedback-content">
+            <div className="my-feedback-date">
 
-                                    <span>
-                                        MY FEEDBACK
-                                    </span>
+                {interview?.scheduled_date
+                    ? new Date(
+                        interview.scheduled_date
+                    ).toLocaleDateString()
+                    : "Date not available"}
 
-                                    <p>
-                                        {
-                                            feedback.feedback
-                                        }
-                                    </p>
+            </div>
 
-                                </div>
+            <div className="my-feedback-content">
 
-                                <div className="my-feedback-actions">
+                <span>
+                    {hasFeedback
+                        ? "MY FEEDBACK"
+                        : "FEEDBACK REQUIRED"}
+                </span>
 
-                                    <button
-                                        type="button"
-                                        className="interview-link-button"
-                                        onClick={() => {
+                <p>
+                    {hasFeedback
+                        ? feedbackItem.feedback
+                        : "No feedback submitted yet. Open the candidate profile to submit your Interview 2 assessment."}
+                </p>
 
-                                            if (
-                                                application
-                                            ) {
-                                                openInterviewProfile(
-                                                    application,
-                                                    Number(
-                                                        interview
-                                                            ?.interview_number ||
-                                                        1
-                                                    )
-                                                );
-                                            }
+            </div>
 
-                                        }}
-                                    >
-                                        View / Edit Feedback
-                                    </button>
+            <div className="my-feedback-actions">
 
-                                </div>
-
-                            </div>
-                        );
+                <button
+                    type="button"
+                    className="interview-link-button"
+                    onClick={() =>
+                        openInterviewProfile(
+                            application,
+                            2,
+                            interview
+                        )
                     }
-                )}
+                >
+                    {hasFeedback
+                        ? "View Feedback"
+                        : "Give Feedback"}
+                </button>
+
+            </div>
+
+        </div>
+    );
+})}
 
             </div>
         )}
@@ -5160,6 +5589,187 @@ const loadInterviewData = async () => {
 
             </div>
 
+                                        
+      {showCandidateFeedback && (
+    <div className="candidate-feedback-overlay">
+
+        <div className="candidate-feedback-popup">
+
+            {/* HEADER */}
+            <div className="candidate-feedback-popup-header">
+
+                <div>
+                    <p className="candidate-feedback-eyebrow">
+                        INTERVIEW ASSESSMENTS
+                    </p>
+
+                    <h2>
+                        Interview Feedback
+                    </h2>
+
+                    <p className="candidate-feedback-candidate-name">
+                        {selectedInterviewProfileCandidate
+                            ?.candidate
+                            ?.user
+                            ?.name ||
+                        selectedInterviewProfileCandidate
+                            ?.candidate
+                            ?.name ||
+                        "Candidate"}
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    className="candidate-feedback-close-button"
+                    onClick={() =>
+                        setShowCandidateFeedback(false)
+                    }
+                    aria-label="Close feedback"
+                >
+                    ×
+                </button>
+
+            </div>
+
+
+            {/* BODY */}
+            <div className="candidate-feedback-popup-body">
+
+                {candidateFeedbackLoading ? (
+
+                    <div className="candidate-feedback-state">
+                        Loading interview feedback...
+                    </div>
+
+                ) : candidateFeedbackError ? (
+
+                    <div className="candidate-feedback-error">
+                        {candidateFeedbackError}
+                    </div>
+
+                ) : candidateFeedbacks.length === 0 ? (
+
+                    <div className="candidate-feedback-state">
+                        <div className="candidate-feedback-empty-icon">
+                            💬
+                        </div>
+
+                        <h3>
+                            No feedback yet
+                        </h3>
+
+                        <p>
+                            Interview feedback submitted by
+                            participants will appear here.
+                        </p>
+                    </div>
+
+                ) : (
+
+                    [1, 2].map((interviewNumber) => {
+
+                        const interviewFeedback =
+                            candidateFeedbacks.filter(
+                                (item) =>
+                                    Number(
+                                        item.interview_number
+                                    ) === interviewNumber
+                            );
+
+                        return (
+                            <div
+                                className="candidate-feedback-stage"
+                                key={interviewNumber}
+                            >
+
+                                <div className="candidate-feedback-stage-heading">
+                                    <span>
+                                        INTERVIEW {interviewNumber}
+                                    </span>
+                                </div>
+
+                                {interviewFeedback.length === 0 ? (
+
+                                    <div className="candidate-feedback-no-entry">
+                                        No feedback submitted yet.
+                                    </div>
+
+                                ) : (
+
+                                    interviewFeedback.map(
+                                        (item) => (
+
+                                            <div
+                                                className="candidate-feedback-card"
+                                                key={item.id}
+                                            >
+
+                                                <div className="candidate-feedback-card-header">
+
+                                                    <div>
+                                                        <h3>
+                                                            {item.interviewer?.name ||
+                                                                "Interview Participant"}
+                                                        </h3>
+
+                                                        <span>
+                                                            {item.interviewer?.position ||
+                                                                "Staff"}
+                                                        </span>
+                                                    </div>
+
+                                                    {item.created_at && (
+                                                        <time>
+                                                            {new Date(
+                                                                item.created_at
+                                                            ).toLocaleDateString()}
+                                                        </time>
+                                                    )}
+
+                                                </div>
+
+                                                <div className="candidate-feedback-text">
+                                                    {item.feedback}
+                                                </div>
+
+                                            </div>
+
+                                        )
+                                    )
+
+                                )}
+
+                            </div>
+                        );
+                    })
+
+                )}
+
+            </div>
+
+
+            {/* FOOTER */}
+            <div className="candidate-feedback-popup-footer">
+
+                <button
+                    type="button"
+                    className="candidate-feedback-close-footer"
+                    onClick={() =>
+                        setShowCandidateFeedback(false)
+                    }
+                >
+                    Close
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+)}
+
+           
 
             {/* ACTIONS */}
 
@@ -5188,16 +5798,17 @@ const loadInterviewData = async () => {
 
 
                 <button
-                    type="button"
-                    className="interview-profile-action-button"
-                    onClick={() => {
-                        alert(
-                            "Feedback will open here."
-                        );
-                    }}
-                >
-                    Feedback
-                </button>
+    type="button"
+    className="interview-profile-action-button"
+    onClick={() => {
+        fetchCandidateFeedback(
+            selectedInterviewProfileCandidate?.id
+        );
+        setShowCandidateFeedback(true);
+    }}
+>
+    Feedback
+</button>
 
             </div>
 
@@ -6051,6 +6662,303 @@ function CandidateDetailModal({
 
     const score =
         getMatchScore(application);
+
+        const isInterviewScheduleLocked = (vacancy, interviewNumber) => {
+    if (!vacancy) return false;
+
+    const field =
+        interviewNumber === 1
+            ? "interview_one_locked"
+            : "interview_two_locked";
+
+    return (
+        vacancy[field] === true ||
+        vacancy[field] === 1 ||
+        vacancy[field] === "1"
+    );
+};
+
+const getInterviewVacancies = (applications) => {
+    const map = new Map();
+
+    applications.forEach((application) => {
+        const vacancy =
+            application.jobPosition ||
+            application.job_position;
+
+        if (vacancy?.id) {
+            map.set(vacancy.id, vacancy);
+        }
+    });
+
+    useEffect(() => {
+    if (
+        !selectedInterviewOneVacancyId &&
+        interviewOneVacancies.length > 0
+    ) {
+        setSelectedInterviewOneVacancyId(
+            String(interviewOneVacancies[0].id)
+        );
+    }
+}, [
+    interviewOneVacancies,
+    selectedInterviewOneVacancyId,
+]);
+
+useEffect(() => {
+    if (
+        !selectedInterviewTwoVacancyId &&
+        interviewTwoVacancies.length > 0
+    ) {
+        setSelectedInterviewTwoVacancyId(
+            String(interviewTwoVacancies[0].id)
+        );
+    }
+}, [
+    interviewTwoVacancies,
+    selectedInterviewTwoVacancyId,
+]);
+
+
+useEffect(() => {
+    const vacancy =
+        interviewOneVacancies.find(
+            (item) =>
+                String(item.id) ===
+                String(selectedInterviewOneVacancyId)
+        );
+
+    if (!vacancy) return;
+
+    if (
+        isInterviewScheduleLocked(
+            vacancy,
+            1
+        )
+    ) {
+        setInterviewOneDate(
+            vacancy.interview_one_date
+                ? String(
+                      vacancy.interview_one_date
+                  ).slice(0, 10)
+                : ""
+        );
+
+        setInterviewOneTime(
+            vacancy.interview_one_time
+                ? String(
+                      vacancy.interview_one_time
+                  ).slice(0, 5)
+                : ""
+        );
+
+        const techLead =
+            interviewers.find(
+                (person) =>
+                    Number(person.id) ===
+                    Number(
+                        vacancy.interview_one_tech_lead_id
+                    )
+            ) || null;
+
+        const seniorEngineer =
+            interviewers.find(
+                (person) =>
+                    Number(person.id) ===
+                    Number(
+                        vacancy.interview_one_senior_engineer_id
+                    )
+            ) || null;
+
+        setSelectedTechLead(
+            techLead
+        );
+
+        setSelectedSeniorEngineer(
+            seniorEngineer
+        );
+    }
+}, [
+    selectedInterviewOneVacancyId,
+    interviewOneVacancies,
+    interviewers,
+]);
+
+
+useEffect(() => {
+    const vacancy =
+        interviewTwoVacancies.find(
+            (item) =>
+                String(item.id) ===
+                String(selectedInterviewTwoVacancyId)
+        );
+
+    if (!vacancy) return;
+
+    if (
+        isInterviewScheduleLocked(
+            vacancy,
+            2
+        )
+    ) {
+        setInterviewTwoDate(
+            vacancy.interview_two_date
+                ? String(
+                      vacancy.interview_two_date
+                  ).slice(0, 10)
+                : ""
+        );
+
+        setInterviewTwoTime(
+            vacancy.interview_two_time
+                ? String(
+                      vacancy.interview_two_time
+                  ).slice(0, 5)
+                : ""
+        );
+
+        const hrManager =
+            interviewers.find(
+                (person) =>
+                    Number(person.id) ===
+                    Number(
+                        vacancy.interview_two_hr_manager_id
+                    )
+            ) || null;
+
+        const hiringManager =
+            interviewers.find(
+                (person) =>
+                    Number(person.id) ===
+                    Number(
+                        vacancy.interview_two_hiring_manager_id
+                    )
+            ) || null;
+
+        setSelectedHRManager(
+            hrManager
+        );
+
+        setSelectedHiringManager(
+            hiringManager
+        );
+    }
+}, [
+    selectedInterviewTwoVacancyId,
+    interviewTwoVacancies,
+    interviewers,
+]);
+
+    return Array.from(map.values());
+};
+
+const interviewOneVacancies =
+    getInterviewVacancies(interviewOneCandidates);
+
+const interviewTwoVacancies =
+    getInterviewVacancies(interviewTwoCandidates);
+
+const selectedInterviewOneVacancy =
+    interviewOneVacancies.find(
+        (vacancy) =>
+            String(vacancy.id) ===
+            String(selectedInterviewOneVacancyId)
+    ) || null;
+
+const selectedInterviewTwoVacancy =
+    interviewTwoVacancies.find(
+        (vacancy) =>
+            String(vacancy.id) ===
+            String(selectedInterviewTwoVacancyId)
+    ) || null;
+
+const formatInterviewStartTime = (time) => {
+    if (!time) return "";
+
+    const [hourText, minute] =
+        String(time)
+            .slice(0, 5)
+            .split(":");
+
+    let hour = Number(hourText);
+
+    const suffix =
+        hour >= 12 ? "PM" : "AM";
+
+    hour =
+        hour % 12 || 12;
+
+    return `${hour}:${minute} ${suffix}`;
+};
+
+const handleSelectForPosition = async (application) => {
+    const candidateName =
+        application.candidate?.user?.name ||
+        application.candidate?.user?.full_name ||
+        "this candidate";
+
+    const positionName =
+        application.jobPosition?.title ||
+        application.job_position?.title ||
+        "this position";
+
+    const confirmed = window.confirm(
+        `Are you sure you want to select ${candidateName} for the ${positionName} position?`
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `${API_URL}/applications/${application.id}/status`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+                body: JSON.stringify({
+                    status: "selected",
+                }),
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.message || "Failed to select candidate."
+            );
+        }
+
+        // Update the current table immediately
+        setInterviewTwoCandidates((prev) =>
+            prev.map((item) =>
+                item.id === application.id
+                    ? {
+                          ...item,
+                          status: "selected",
+                      }
+                    : item
+            )
+        );
+
+        setInterviewMessage(
+            `✓ ${candidateName} has been selected for the ${positionName} position.`
+        );
+
+    } catch (error) {
+        console.error("Select for position error:", error);
+
+        setInterviewMessage(
+            error.message || "Failed to select candidate."
+        );
+    }
+};
+
+
 
     return (
         <div className="modal-overlay">

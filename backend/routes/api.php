@@ -315,6 +315,11 @@ Route::middleware('auth:sanctum')->group(function () {
             [InterviewController::class, 'store']
         );
 
+        Route::get(
+    '/applications/{id}/interview-feedback',
+    [InterviewController::class, 'getCandidateFeedback']
+);
+
         // Check an individual staff member's Google Calendar
         Route::get(
     '/interviews/interviewer-availability',
@@ -325,6 +330,8 @@ Route::post(
     '/interviews/move-to-interview-two',
     [InterviewController::class, 'moveToInterviewTwo']
 );
+
+
 
 
     });

@@ -155,101 +155,265 @@ class GoogleCalendarService
      * Check whether the interviewer has at least
      * one free 60-minute period between 09:00 and 17:00.
      */
-    public function checkAvailability(
-        GoogleCalendarConnection $connection,
-        string $date
-    ): array {
-        $events = $this->getEventsForDate(
-            $connection,
-            $date
+    /**
+ * Check interviewer availability.
+ *
+ * Without a start time:
+ * - Checks whether the interviewer has at least one
+ *   free 2-hour block between 09:00 and 17:00.
+ * - Returns the first valid start time from:
+ *   09:00, 10:00, 11:00, 12:00, 13:00, 14:00, 15:00
+ *
+ * With a start time:
+ * - Checks the exact 2-hour block beginning at that time.
+ */
+public function checkAvailability(
+    GoogleCalendarConnection $connection,
+    string $date,
+    ?string $startTime = null
+): array {
+    $events = $this->getEventsForDate(
+        $connection,
+        $date
+    );
+
+    $timezone = new \DateTimeZone('Asia/Colombo');
+
+    $workStart = new \DateTimeImmutable(
+        $date . ' 09:00:00',
+        $timezone
+    );
+
+    $workEnd = new \DateTimeImmutable(
+        $date . ' 17:00:00',
+        $timezone
+    );
+
+    $allowedStartTimes = [
+        '09:00',
+        '10:00',
+        '11:00',
+        '12:00',
+        '13:00',
+        '14:00',
+        '15:00',
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validate selected start time
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        $startTime !== null &&
+        !in_array($startTime, $allowedStartTimes, true)
+    ) {
+        throw new \InvalidArgumentException(
+            'Interview start time must be between 09:00 and 15:00 in one-hour intervals.'
         );
+    }
 
-        $workStart = strtotime($date . ' 09:00:00');
-        $workEnd = strtotime($date . ' 17:00:00');
+    /*
+    |--------------------------------------------------------------------------
+    | Build busy periods
+    |--------------------------------------------------------------------------
+    */
 
-        $busyPeriods = [];
+    $busyPeriods = [];
 
-        foreach ($events as $event) {
+    foreach ($events as $event) {
 
-            // All-day event.
-            if (
-                isset($event['start']['date']) &&
-                isset($event['end']['date'])
-            ) {
-                $busyPeriods[] = [
-                    'start' => $workStart,
-                    'end' => $workEnd,
-                ];
-
-                continue;
-            }
-
-            $start = $event['start']['dateTime'] ?? null;
-            $end = $event['end']['dateTime'] ?? null;
-
-            if (!$start || !$end) {
-                continue;
-            }
-
-            $startTimestamp = strtotime($start);
-            $endTimestamp = strtotime($end);
-
-            $startTimestamp = max(
-                $startTimestamp,
-                $workStart
-            );
-
-            $endTimestamp = min(
-                $endTimestamp,
-                $workEnd
-            );
-
-            if ($startTimestamp < $endTimestamp) {
-                $busyPeriods[] = [
-                    'start' => $startTimestamp,
-                    'end' => $endTimestamp,
-                ];
-            }
+        /*
+        | Ignore cancelled events.
+        */
+        if (($event['status'] ?? null) === 'cancelled') {
+            continue;
         }
 
-        usort(
-            $busyPeriods,
-            fn ($a, $b) => $a['start'] <=> $b['start']
-        );
+        /*
+        | Transparent events do not block calendar availability.
+        */
+        if (($event['transparency'] ?? null) === 'transparent') {
+            continue;
+        }
 
-        $current = $workStart;
+        /*
+        | All-day event.
+        */
+        if (
+            isset($event['start']['date']) &&
+            isset($event['end']['date'])
+        ) {
+            $busyPeriods[] = [
+                'start' => $workStart,
+                'end' => $workEnd,
+            ];
+
+            continue;
+        }
+
+        $start = $event['start']['dateTime'] ?? null;
+        $end = $event['end']['dateTime'] ?? null;
+
+        if (!$start || !$end) {
+            continue;
+        }
+
+        try {
+            $eventStart = new \DateTimeImmutable(
+                $start
+            );
+
+            $eventEnd = new \DateTimeImmutable(
+                $end
+            );
+        } catch (\Throwable $e) {
+            continue;
+        }
+
+        /*
+        | Only the part inside the working day matters.
+        */
+        if ($eventStart < $workStart) {
+            $eventStart = $workStart;
+        }
+
+        if ($eventEnd > $workEnd) {
+            $eventEnd = $workEnd;
+        }
+
+        if ($eventStart < $eventEnd) {
+            $busyPeriods[] = [
+                'start' => $eventStart,
+                'end' => $eventEnd,
+            ];
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sort busy periods
+    |--------------------------------------------------------------------------
+    */
+
+    usort(
+        $busyPeriods,
+        fn ($a, $b) =>
+            $a['start']->getTimestamp()
+            <=>
+            $b['start']->getTimestamp()
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Helper: check one exact 2-hour block
+    |--------------------------------------------------------------------------
+    */
+
+    $isFree = function (
+        \DateTimeImmutable $blockStart,
+        \DateTimeImmutable $blockEnd
+    ) use ($busyPeriods): bool {
 
         foreach ($busyPeriods as $period) {
 
-            if (($period['start'] - $current) >= 3600) {
-                return [
-                    'available' => true,
-                    'suggested_time' => date(
-                        'H:i',
-                        $current
-                    ),
-                ];
+            /*
+            | Two ranges overlap when:
+            |
+            | blockStart < busyEnd
+            | AND
+            | blockEnd > busyStart
+            |
+            */
+            if (
+                $blockStart < $period['end'] &&
+                $blockEnd > $period['start']
+            ) {
+                return false;
             }
-
-            $current = max(
-                $current,
-                $period['end']
-            );
         }
 
-        if (($workEnd - $current) >= 3600) {
+        return true;
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | EXACT TIME CHECK
+    |--------------------------------------------------------------------------
+    */
+
+    if ($startTime !== null) {
+
+        $blockStart = new \DateTimeImmutable(
+            $date . ' ' . $startTime . ':00',
+            $timezone
+        );
+
+        $blockEnd = $blockStart->modify('+2 hours');
+
+        /*
+        | Safety check:
+        | 3:00 PM → 5:00 PM is the latest allowed block.
+        */
+        if ($blockEnd > $workEnd) {
             return [
-                'available' => true,
-                'suggested_time' => date(
-                    'H:i',
-                    $current
-                ),
+                'available' => false,
+                'suggested_time' => null,
             ];
         }
 
+        $available = $isFree(
+            $blockStart,
+            $blockEnd
+        );
+
         return [
-            'available' => false,
-            'suggested_time' => null,
+            'available' => $available,
+            'suggested_time' =>
+                $available
+                    ? $startTime
+                    : null,
+            'checked_start_time' =>
+                $startTime,
+            'checked_end_time' =>
+                $blockEnd->format('H:i'),
         ];
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DATE-LEVEL CHECK
+    |--------------------------------------------------------------------------
+    |
+    | Find the first available 2-hour block using
+    | the allowed one-hour starting times.
+    |--------------------------------------------------------------------------
+    */
+
+    foreach ($allowedStartTimes as $candidateTime) {
+
+        $blockStart = new \DateTimeImmutable(
+            $date . ' ' . $candidateTime . ':00',
+            $timezone
+        );
+
+        $blockEnd = $blockStart->modify('+2 hours');
+
+        if (
+            $blockEnd <= $workEnd &&
+            $isFree($blockStart, $blockEnd)
+        ) {
+            return [
+                'available' => true,
+                'suggested_time' => $candidateTime,
+            ];
+        }
+    }
+
+    return [
+        'available' => false,
+        'suggested_time' => null,
+    ];
+}
 }

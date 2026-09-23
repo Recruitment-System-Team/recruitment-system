@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\GoogleCalendarService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Validation\Rule;
 
 class GoogleCalendarController extends Controller
 {
@@ -129,9 +130,30 @@ class GoogleCalendarController extends Controller
         GoogleCalendarService $googleCalendar
     ) {
         $validated = $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'date' => 'required|date_format:Y-m-d',
-        ]);
+    'user_id' => [
+        'required',
+        'exists:users,id',
+    ],
+
+    'date' => [
+        'required',
+        'date_format:Y-m-d',
+    ],
+
+    'start_time' => [
+        'nullable',
+        'date_format:H:i',
+        Rule::in([
+            '09:00',
+            '10:00',
+            '11:00',
+            '12:00',
+            '13:00',
+            '14:00',
+            '15:00',
+        ]),
+    ],
+]);
 
         $connection = GoogleCalendarConnection::where(
             'user_id',
@@ -149,9 +171,10 @@ class GoogleCalendarController extends Controller
 
         try {
             $availability = $googleCalendar->checkAvailability(
-                $connection,
-                $validated['date']
-            );
+    $connection,
+    $validated['date'],
+    $validated['start_time'] ?? null
+);
 
             return response()->json([
                 'connected' => true,
