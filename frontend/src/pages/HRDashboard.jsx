@@ -197,14 +197,15 @@ const [candidateFeedbackError, setCandidateFeedbackError] =
     // =========================================================
     // CANDIDATES
     // =========================================================
+        const [vacancyCandidateApplications, setVacancyCandidateApplications] =
+    useState([]);
 
-    const [
-        vacancyCandidateApplications,
-        setVacancyCandidateApplications,
-    ] = useState([]);
+const [selectedCandidateIds, setSelectedCandidateIds] =
+    useState([]);
 
-    const [selectedCandidate, setSelectedCandidate] =
-        useState(null);
+const [selectedCandidate, setSelectedCandidate] =
+    useState(null);
+        
 
     const [showExtractedText, setShowExtractedText] =
         useState(false);
@@ -924,11 +925,12 @@ const handleViewCv = async (cv) => {
     // =========================================================
 
     const openVacancyCandidates = (
-        vacancy
-    ) => {
-        if (!vacancy) return;
+    vacancy
+) => {
+    if (!vacancy) return;
 
-        setCandidateLoading(true);
+    setError("");
+    setCandidateLoading(true);
 
         const vacancyApplications =
             applications
@@ -1499,6 +1501,8 @@ const handleViewCv = async (cv) => {
             setStatusUpdating(false);
         }
     };
+
+    
 const fetchMyFeedbacks = async () => {
     try {
         setMyFeedbacksLoading(true);
@@ -1543,19 +1547,13 @@ const fetchMyFeedbacks = async () => {
 };
 
 
-const handleSelectForPosition = async (application) => {
-    const candidateName =
-        application.candidate?.user?.name ||
-        application.candidate?.user?.full_name ||
-        "this candidate";
-
-    const positionName =
-        application.jobPosition?.title ||
-        application.job_position?.title ||
-        "this position";
+const handleRejectSelectedCandidates = async () => {
+    if (selectedCandidateIds.length === 0) {
+        return;
+    }
 
     const confirmed = window.confirm(
-        `Are you sure you want to select ${candidateName} for the ${positionName} position?`
+        `Are you sure you want to reject ${selectedCandidateIds.length} selected candidate(s)?`
     );
 
     if (!confirmed) {
@@ -1563,59 +1561,89 @@ const handleSelectForPosition = async (application) => {
     }
 
     try {
+        setStatusUpdating(true);
         setError("");
 
-        const response = await fetch(
-            `${API_URL}/applications/${application.id}/status`,
-            {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    status: "selected",
-                }),
-            }
-        );
-
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-            throw new Error(
-                data.message ||
-                    "Unable to select candidate for the position."
-            );
-        }
-
-        // Update Interview 2 immediately
-        setInterviewTwoCandidates((current) =>
-            current.map((item) =>
-                Number(item.id) === Number(application.id)
-                    ? {
-                          ...item,
-                          status: "selected",
-                      }
-                    : item
+        const responses = await Promise.all(
+            selectedCandidateIds.map((applicationId) =>
+                fetch(
+                    `${API_URL}/applications/${applicationId}/status`,
+                    {
+                        method: "PATCH",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Accept: "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({
+                            status: "rejected",
+                        }),
+                    }
+                )
             )
         );
 
-        // Also refresh the main application data
-        await fetchApplications();
+        const failedResponse = responses.find(
+            (response) => !response.ok
+        );
 
+        if (failedResponse) {
+            const data = await failedResponse
+                .json()
+                .catch(() => ({}));
+
+            throw new Error(
+                data.message ||
+                    "Unable to reject some candidates."
+            );
+        }
+
+        setVacancyCandidateApplications((current) =>
+            current.map((application) =>
+                selectedCandidateIds.includes(
+                    application.id
+                )
+                    ? {
+                          ...application,
+                          status: "rejected",
+                      }
+                    : application
+            )
+        );
+
+        setApplications((current) =>
+            current.map((application) =>
+                selectedCandidateIds.includes(
+                    application.id
+                )
+                    ? {
+                          ...application,
+                          status: "rejected",
+                      }
+                    : application
+            )
+        );
+
+        setSelectedCandidateIds([]);
+
+        alert(
+            "Selected candidates have been rejected and rejection emails have been triggered."
+        );
     } catch (error) {
         console.error(
-            "SELECT FOR POSITION ERROR:",
+            "BULK REJECTION ERROR:",
             error
         );
 
         setError(
             error.message ||
-                "Unable to select candidate for the position."
+                "Unable to reject selected candidates."
         );
+    } finally {
+        setStatusUpdating(false);
     }
 };
+
     // =========================================================
     // LOGOUT
     // =========================================================
@@ -2618,6 +2646,7 @@ const handleMoveToInterviewTwo = async (
 };
 
 
+
 const loadInterviewData = async () => {
     try {
         setInterviewLoading(true);
@@ -3515,65 +3544,59 @@ const loadInterviewData = async () => {
                                         </div>
                                     )}
 
-                                    {/* =================================================
-                                        SHORTLISTED (by HR)
-                                    ================================================= */}
+                                   {/* =================================================
+    PRIMARY SHORTLISTED CANDIDATES
+================================================= */}
 
-                                    <div className="candidate-section-heading">
-                                        <div>
-                                            <p className="page-eyebrow">
-                                                PRIMARY SHORTLISTED CANDIDATES
-                                            </p>
+<div className="candidate-section-heading">
+    <div>
+        <p className="page-eyebrow">
+            PRIMARY SHORTLISTED CANDIDATES
+        </p>
+    </div>
+</div>
 
-                            
-                                        </div>
-                                    </div>
+{vacancyCandidateApplications.filter(
+    (application) =>
+        Number(application.match_score ?? 0) >= 60 &&
+        application.status !== "hiring_manager_shortlisted" &&
+        application.status !== "rejected"
+).slice(0, 5).length === 0 ? (
+    <div className="empty-vacancy-card">
+        <h2>
+            No shortlisted candidates
+        </h2>
 
-                                    {vacancyCandidateApplications.filter(
-                                        (
-                                            application
-                                        ) =>
-                                            application.status ===
-                                            "shortlisted"
-                                    ).length ===
-                                    0 ? (
-                                        <div className="empty-vacancy-card">
-                                            <h2>
-                                                No
-                                                shortlisted
-                                                candidates
-                                            </h2>
+        <p>
+            Candidates selected for the primary
+            shortlist will appear here.
+        </p>
+    </div>
+) : (
+    <div className="candidate-list">
+        {vacancyCandidateApplications
+            .filter(
+                (application) =>
+                    Number(application.match_score ?? 0) >= 60 &&
+                    application.status !== "hiring_manager_shortlisted" &&
+                    application.status !== "rejected"
+            )
+            .sort(
+                (a, b) =>
+                    Number(b.match_score ?? 0) -
+                    Number(a.match_score ?? 0)
+            )
+            .slice(0, 5)
+            .map(
+                (application, index) =>
+                    renderCandidateColumn(
+                        application,
+                        index
+                    )
+            )}
+    </div>
+)}
 
-                                            <p>
-                                                Candidates
-                                                marked as
-                                                shortlisted
-                                                will appear
-                                                here.
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="candidate-list">
-                                            {vacancyCandidateApplications
-                                                .filter(
-                                                    (
-                                                        application
-                                                    ) =>
-                                                        application.status ===
-                                                        "shortlisted"
-                                                )
-                                                .map(
-                                                    (
-                                                        application,
-                                                        index
-                                                    ) =>
-                                                        renderCandidateColumn(
-                                                            application,
-                                                            index
-                                                        )
-                                                )}
-                                        </div>
-                                    )}
 
                                     {/* =================================================
                                         ALL CANDIDATES
@@ -3581,18 +3604,102 @@ const loadInterviewData = async () => {
                                     ================================================= */}
 
                                     <div className="candidate-section-heading">
-                                        <div>
-                                            <p className="page-eyebrow">
-                                                APPLICATIONS
-                                            </p>
+    <div>
+        <p className="page-eyebrow">
+            APPLICATIONS
+        </p>
 
-                                            <h2>
-                                                All
-                                                Candidates
-                                            </h2>
-                                        </div>
-                                    </div>
+        <h2>
+            All Candidates
+        </h2>
+    </div>
 
+    <div
+        style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "14px",
+        }}
+    >
+        <label
+            style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                cursor: "pointer",
+            }}
+        >
+            <input
+                type="checkbox"
+                checked={
+                    vacancyCandidateApplications.filter(
+                        (application) =>
+                            application.status !==
+                                "shortlisted" &&
+                            application.status !==
+                                "hiring_manager_shortlisted" &&
+                            application.status !==
+                                "rejected"
+                    ).length > 0 &&
+                    vacancyCandidateApplications
+                        .filter(
+                            (application) =>
+                                application.status !==
+                                    "shortlisted" &&
+                                application.status !==
+                                    "hiring_manager_shortlisted" &&
+                                application.status !==
+                                    "rejected"
+                        )
+                        .every((application) =>
+                            selectedCandidateIds.includes(
+                                application.id
+                            )
+                        )
+                }
+                onChange={(e) => {
+                    const selectableCandidates =
+                        vacancyCandidateApplications.filter(
+                            (application) =>
+                                application.status !==
+                                    "shortlisted" &&
+                                application.status !==
+                                    "hiring_manager_shortlisted" &&
+                                application.status !==
+                                    "rejected"
+                        );
+
+                    if (e.target.checked) {
+                        setSelectedCandidateIds(
+                            selectableCandidates.map(
+                                (application) =>
+                                    application.id
+                            )
+                        );
+                    } else {
+                        setSelectedCandidateIds([]);
+                    }
+                }}
+            />
+
+            Select All
+        </label>
+
+        {selectedCandidateIds.length > 0 && (
+            <button
+                type="button"
+                onClick={
+                    handleRejectSelectedCandidates
+                }
+                disabled={statusUpdating}
+            >
+                {statusUpdating
+                    ? "Rejecting..."
+                    : `Reject Selected (${selectedCandidateIds.length})`}
+            </button>
+        )}
+    </div>
+</div>
                                    {vacancyCandidateApplications.filter(
     (application) =>
         application.status !== "shortlisted" &&
@@ -3621,22 +3728,83 @@ const loadInterviewData = async () => {
                 application.shortlisted_by_hiring_manager !== true &&
                 application.shortlisted_by_hiring_manager !== 1
         )
-        .map(
-                                                    (
-                                                        application,
-                                                        index
-                                                    ) =>
-                                                        renderCandidateColumn(
-                                                            application,
-                                                            index
-                                                        )
-                                                )}
+       .map(
+    (
+        application,
+        index
+    ) => (
+        <div
+            key={application.id}
+        >
+            {application.status !==
+                "rejected" && (
+                <label
+                    style={{
+                        display: "flex",
+                        alignItems:
+                            "center",
+                        gap: "6px",
+                        marginBottom:
+                            "6px",
+                        cursor: "pointer",
+                    }}
+                >
+                    <input
+                        type="checkbox"
+                        checked={selectedCandidateIds.includes(
+                            application.id
+                        )}
+                        onChange={(e) => {
+                            if (
+                                e.target
+                                    .checked
+                            ) {
+                                setSelectedCandidateIds(
+                                    (
+                                        current
+                                    ) => [
+                                        ...current,
+                                        application.id,
+                                    ]
+                                );
+                            } else {
+                                setSelectedCandidateIds(
+                                    (
+                                        current
+                                    ) =>
+                                        current.filter(
+                                            (
+                                                id
+                                            ) =>
+                                                id !==
+                                                application.id
+                                        )
+                                );
+                            }
+                        }}
+                    />
+
+                    Select for rejection
+                </label>
+            )}
+
+            {renderCandidateColumn(
+                application,
+                index
+            )}
+        </div>
+    )
+)}
                                         </div>
                                     )}
                                 </>
                             )}
+
+                            
                         </section>
+                        
                     )}
+
 
                 {/* =================================================
                     INBOX
@@ -5050,6 +5218,8 @@ setSelectedHiringManager(null);
             feedbackItem.feedback.trim()
         );
 
+
+        
     return (
         <div
             className="my-feedback-card"
@@ -6890,7 +7060,6 @@ const formatInterviewStartTime = (time) => {
 
     return `${hour}:${minute} ${suffix}`;
 };
-
 const handleSelectForPosition = async (application) => {
     const candidateName =
         application.candidate?.user?.name ||
@@ -6906,18 +7075,20 @@ const handleSelectForPosition = async (application) => {
         `Are you sure you want to select ${candidateName} for the ${positionName} position?`
     );
 
-    if (!confirmed) {
-        return;
-    }
+    if (!confirmed) return;
 
     try {
+        setError("");
+        setInterviewMessage("");
+
         const response = await fetch(
             `${API_URL}/applications/${application.id}/status`,
             {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
                     status: "selected",
@@ -6925,7 +7096,7 @@ const handleSelectForPosition = async (application) => {
             }
         );
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
             throw new Error(
@@ -6933,10 +7104,10 @@ const handleSelectForPosition = async (application) => {
             );
         }
 
-        // Update the current table immediately
+        // Update this candidate immediately
         setInterviewTwoCandidates((prev) =>
             prev.map((item) =>
-                item.id === application.id
+                Number(item.id) === Number(application.id)
                     ? {
                           ...item,
                           status: "selected",
@@ -6944,6 +7115,9 @@ const handleSelectForPosition = async (application) => {
                     : item
             )
         );
+
+        // Refresh applications so the UI stays in sync
+        await fetchApplications();
 
         setInterviewMessage(
             `✓ ${candidateName} has been selected for the ${positionName} position.`
@@ -6958,7 +7132,27 @@ const handleSelectForPosition = async (application) => {
     }
 };
 
+const primaryShortlistApplications =
+    vacancyCandidateApplications
+        .filter(
+            (application) =>
+                Number(
+                    application.match_score ?? 0
+                ) >= 60 &&
+                application.status !== "rejected"
+        )
+        .sort(
+            (a, b) =>
+                Number(
+                    b.match_score ?? 0
+                ) -
+                Number(
+                    a.match_score ?? 0
+                )
+        )
+        .slice(0, 5);
 
+        
 
     return (
         <div className="modal-overlay">
@@ -7246,6 +7440,7 @@ const handleSelectForPosition = async (application) => {
             </div>
         </div>
     );
+
 
 
 }

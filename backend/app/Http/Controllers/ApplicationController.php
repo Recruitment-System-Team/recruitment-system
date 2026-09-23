@@ -3,7 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Application;
+
 use Illuminate\Http\Request;
+use App\Mail\RecruitmentNotificationMail;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class ApplicationController extends Controller
 {
@@ -130,6 +134,7 @@ class ApplicationController extends Controller
             'jobPosition',
             'cv'
         ]);
+        
 
         /**
          * Automatically evaluate processed CV.
@@ -143,25 +148,40 @@ class ApplicationController extends Controller
 
             $application->refresh();
 
-            /**
-             * Automatically reject candidates below 60%.
-             */
-            if (
-                $application->match_score !== null &&
-                $application->match_score < 60
-            ) {
-                $application->update([
-                    'status' => 'rejected'
-                ]);
-            }
+           /**
+ * Automatically reject candidates below 60%.
+ */
+if (
+    $application->match_score !== null &&
+    $application->match_score < 60
+) {
+    $application->update([
+        'status' => 'rejected'
+    ]);
 
-            $application->refresh();
+    $application->refresh();
 
-            $application->load([
-                'candidate.user',
-                'jobPosition',
-                'cv'
-            ]);
+    $application->load([
+        'candidate.user',
+        'candidate',
+        'jobPosition',
+        'cv'
+    ]);
+
+    $this->sendApplicationStatusEmail(
+        $application,
+        'rejected'
+    );
+} else {
+    $application->refresh();
+
+    $application->load([
+        'candidate.user',
+        'candidate',
+        'jobPosition',
+        'cv'
+    ]);
+}
         }
 
         return response()->json([
@@ -209,30 +229,63 @@ class ApplicationController extends Controller
     /**
      * Update application status.
      */
-    public function updateStatus(Request $request, $id)
-    {
-        $validated = $request->validate([
-            'status' => 'required|string|in:new,screening,shortlisted,interview,selected,rejected'
-        ]);
+   public function updateStatus(Request $request, $id)
+{
+    $validated = $request->validate([
+        'status' =>
+            'required|string|in:new,screening,shortlisted,interview,selected,rejected'
+    ]);
 
-        $application = Application::findOrFail($id);
+    $application =
+        Application::findOrFail($id);
 
-        $application->update([
-            'status' => $validated['status']
-        ]);
+    $oldStatus =
+        $application->status;
 
-        $application->load([
-            'candidate.user',
-            'jobPosition',
-            'cv'
-        ]);
+    $newStatus =
+        $validated['status'];
 
-        return response()->json([
-            'message' => 'Application status updated successfully.',
-            'application' => $application
-        ]);
+    $application->update([
+        'status' =>
+            $newStatus
+    ]);
+
+    $application->load([
+        'candidate.user',
+        'candidate',
+        'jobPosition',
+        'cv'
+    ]);
+
+    /*
+     * Only send an email when the candidate actually
+     * enters Selected or Rejected.
+     *
+     * This prevents duplicate emails when the same
+     * status is saved again.
+     */
+    if (
+        $oldStatus !== $newStatus &&
+        in_array(
+            $newStatus,
+            ['selected', 'rejected'],
+            true
+        )
+    ) {
+        $this->sendApplicationStatusEmail(
+            $application,
+            $newStatus
+        );
     }
 
+    return response()->json([
+        'message' =>
+            'Application status updated successfully.',
+
+        'application' =>
+            $application
+    ]);
+}
 
 
     /**
@@ -346,6 +399,133 @@ if ($application->match_score !== null) {
             'matching' => $matching
         ]);
     }
+    /**
+ * Send an automatic email when an application
+ * becomes selected or rejected.
+ */
+private function sendApplicationStatusEmail(
+    Application $application,
+    string $status
+): void {
+    try {
+
+        $application->load([
+            'candidate.user',
+            'candidate',
+            'jobPosition',
+        ]);
+
+        $candidate =
+            $application->candidate;
+
+        $candidateEmail =
+            $candidate?->user?->email
+            ?? $candidate?->email
+            ?? $application->candidate_email;
+
+        if (!$candidateEmail) {
+
+            Log::warning(
+                'Application status email skipped: no candidate email.',
+                [
+                    'application_id' =>
+                        $application->id,
+
+                    'status' =>
+                        $status,
+                ]
+            );
+
+            return;
+        }
+
+        $candidateName =
+            $candidate?->user?->name
+            ?? $candidate?->name
+            ?? 'Candidate';
+
+        $position =
+            $application->jobPosition?->title
+            ?? 'Job Position';
+
+
+        /*
+         * ---------------------------------------------------------
+         * SELECTED
+         * ---------------------------------------------------------
+         */
+
+        if ($status === 'selected') {
+
+            Mail::to($candidateEmail)->send(
+                new RecruitmentNotificationMail(
+                    "Congratulations - Selected for {$position}",
+
+                    'Congratulations! You Have Been Selected',
+
+                    "Dear {$candidateName}, we are pleased to inform you that you have been selected for the {$position} position.",
+
+                    [
+                        'Position' =>
+                            $position,
+
+                        'Application Status' =>
+                            'Selected',
+                    ]
+                )
+            );
+
+            return;
+        }
+
+
+        /*
+         * ---------------------------------------------------------
+         * REJECTED
+         * ---------------------------------------------------------
+         */
+
+        if ($status === 'rejected') {
+
+            Mail::to($candidateEmail)->send(
+                new RecruitmentNotificationMail(
+                    "Application Update - {$position}",
+
+                    'Application Update',
+
+                    "Dear {$candidateName}, thank you for your interest in the {$position} position. After reviewing your application, we will not be progressing with your application at this stage.",
+
+                    [
+                        'Position' =>
+                            $position,
+
+                        'Application Status' =>
+                            'Rejected',
+                    ]
+                )
+            );
+        }
+
+    } catch (\Throwable $e) {
+
+        /*
+         * Email failure should not break the recruitment action.
+         */
+        Log::error(
+            'Failed to send application status email.',
+            [
+                'application_id' =>
+                    $application->id,
+
+                'status' =>
+                    $status,
+
+                'error' =>
+                    $e->getMessage(),
+            ]
+        );
+    }
+}
 
     /**
      * Run CV matching.

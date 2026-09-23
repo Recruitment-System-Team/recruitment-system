@@ -6921,6 +6921,59 @@ background 0.2s ease,
 
     .candidate-feedback-popup-footer {
         padding: 14px 20px;
+
+
     }
 
+}/* =========================================================
+   INTERVIEW 2 - DESKTOP TABLE ALIGNMENT
+========================================================= */
+
+.interview-two-head,
+.interview-two-row {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.5fr) 100px 120px 180px;
+    align-items: center;
+    column-gap: 24px;
+}
+
+.interview-two-head > div,
+.interview-two-row > div,
+.interview-two-row > button {
+    min-width: 0;
+}
+
+.interview-two-row .candidate-name-cell {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.interview-two-row .interview-link-button {
+    justify-self: start;
+}
+
+.interview-two-row > div:last-child {
+    display: flex;
+    align-items: center;
+}
+
+.interview-two-row .interview-select-button {
+    width: 100%;
+    max-width: 170px;
+    white-space: nowrap;
+}
+
+.interview-two-head > div:nth-child(2),
+.interview-two-row > div:nth-child(2) {
+    text-align: center;
+}
+
+.interview-two-head > div:nth-child(3),
+.interview-two-row > button {
+    text-align: left;
+}
+
+.interview-two-head > div:nth-child(4) {
+    text-align: left;
 }
